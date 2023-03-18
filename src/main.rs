@@ -1,7 +1,8 @@
+use l9_vm::chunk::Chunk;
 use l9_vm::ops::Op;
-use l9_vm::{Chunk, Vm};
+use l9_vm::vm::{Vm, VmError};
 
-fn main() {
+fn main() -> Result<(), VmError> {
     env_logger::init();
 
     // run smallest program
@@ -12,7 +13,9 @@ fn main() {
         Op::Add,
         Op::LoadFloat(7.0),
         Op::Cmp,
+        //        Op::Neg, // Runtime error happens here
         Op::Return,
     ]);
-    vm.interpret(program).expect("program failed");
+    vm.interpret(program)?;
+    Ok(())
 }

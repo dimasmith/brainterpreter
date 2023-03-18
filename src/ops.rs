@@ -8,6 +8,7 @@ pub enum Op {
     LoadFloat(f64),
     Add,
     Cmp,
+    Neg,
 }
 
 impl Display for Op {
@@ -17,6 +18,7 @@ impl Display for Op {
             Op::LoadFloat(n) => write!(f, "LD_F, {}", n),
             Op::Add => write!(f, "ADD"),
             Op::Cmp => write!(f, "CMP"),
+            Op::Neg => write!(f, "NEG"),
         }
     }
 }
