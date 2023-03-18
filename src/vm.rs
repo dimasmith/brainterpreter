@@ -1,8 +1,9 @@
 //! Virtual machine to support running l9 toy programming language
 use crate::chunk::Chunk;
+use crate::log::LoggingTracer;
 use crate::ops::Op;
+use crate::trace::VmStepTrace;
 use crate::value::ValueType;
-use log::debug;
 use thiserror::Error;
 
 #[derive(Debug, Copy, Clone, PartialEq, Error)]
@@ -24,28 +25,41 @@ pub enum VmRuntimeError {
     TypeMismatch,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Vm {
     ip: usize,
     chunk: Chunk,
     stack: VmStack,
+    trace: Option<Box<dyn VmStepTrace>>,
 }
 
 const STACK_SIZE: usize = 1024 * 1024;
 
 #[derive(Debug)]
-struct VmStack {
+pub struct VmStack {
     stack: Vec<ValueType>,
 }
 
 impl VmStack {
-    fn pop(&mut self) -> Result<ValueType, VmError> {
+    pub fn pop(&mut self) -> Result<ValueType, VmError> {
         self.stack
             .pop()
             .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
     }
 
-    fn push(&mut self, value: ValueType) {
+    pub fn peek(&self, offset: usize) -> Option<&ValueType> {
+        self.stack.get(offset)
+    }
+
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+
+    pub fn push(&mut self, value: ValueType) {
         self.stack.push(value);
     }
 }
@@ -61,16 +75,16 @@ impl Vm {
     pub fn interpret(&mut self, chunk: Chunk) -> Result<(), VmError> {
         self.ip = 0;
         self.chunk = chunk;
-        debug!("Disasembling program \n{}", &self.chunk);
         self.run()?;
         Ok(())
     }
 
     fn run(&mut self) -> Result<(), VmError> {
-        debug!("Tracing execution:");
         while let Some(op) = self.chunk.op(self.ip) {
+            if let Some(trace) = &self.trace {
+                trace.trace(self.ip, &self.chunk, &self.stack);
+            }
             self.ip += 1;
-            debug!(":{}", op);
             match op {
                 Op::Return => {
                     dbg!(&self.stack);
@@ -143,6 +157,18 @@ impl Vm {
             }
         }
         Ok(())
+    }
+}
+
+impl Default for Vm {
+    fn default() -> Self {
+        let tracer = LoggingTracer::default();
+        Vm {
+            ip: 0,
+            chunk: Chunk::default(),
+            stack: VmStack::default(),
+            trace: Some(Box::new(tracer)),
+        }
     }
 }
 
