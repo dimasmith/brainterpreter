@@ -87,7 +87,11 @@ impl Vm {
             self.ip += 1;
             match op {
                 Op::Return => {
-                    dbg!(&self.stack);
+                    if let Some(v) = &self.stack.peek(0) {
+                        println!("{}", v);
+                    } else {
+                        println!("None");
+                    }
                     break;
                 }
                 Op::LoadFloat(n) => {

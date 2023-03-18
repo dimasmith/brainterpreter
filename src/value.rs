@@ -12,9 +12,9 @@ pub enum ValueType {
 impl Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ValueType::Bool(b) => write!(f, "b{}", b),
-            ValueType::Number(n) => write!(f, "{}", n),
-            ValueType::Address(a) => write!(f, "*{}", a),
+            ValueType::Bool(b) => write!(f, "b:{}", b),
+            ValueType::Number(n) => write!(f, "f:{}", n),
+            ValueType::Address(a) => write!(f, "*:{}", a),
         }
     }
 }
