@@ -92,7 +92,6 @@ impl Vm {
                     } else {
                         println!("None");
                     }
-                    break;
                 }
                 Op::LoadFloat(n) => {
                     let value = ValueType::Number(*n);

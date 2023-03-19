@@ -2,11 +2,12 @@
 
 use std::fmt::Display;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
     Bool(bool),
     Number(f64),
     Address(usize),
+    Text(Box<String>),
 }
 
 impl Display for ValueType {
@@ -15,6 +16,7 @@ impl Display for ValueType {
             ValueType::Bool(b) => write!(f, "b:{}", b),
             ValueType::Number(n) => write!(f, "f:{}", n),
             ValueType::Address(a) => write!(f, "*:{}", a),
+            ValueType::Text(s) => write!(f, "s:{}", s),
         }
     }
 }
