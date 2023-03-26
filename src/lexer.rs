@@ -7,6 +7,8 @@ pub enum Token {
     Minus,
     Star,
     Slash,
+    LParen,
+    RParen,
     Number(f64),
     EndOfFile,
     Error,
@@ -39,6 +41,8 @@ impl<'a> Lexer<'a> {
             '-' => Token::Minus,
             '*' => Token::Star,
             '/' => Token::Slash,
+            '(' => Token::LParen,
+            ')' => Token::RParen,
             '0'..='9' => self.number(),
             _ => Token::Error,
         }

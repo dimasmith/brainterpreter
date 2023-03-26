@@ -20,6 +20,8 @@ pub enum ParsingError {
     MissingOperand,
     #[error("unknown operation")]
     UnknownOperation,
+    #[error("missing closing parentheses")]
+    MissingClosingParentheses,
 }
 
 impl<T> Parser<T>
@@ -43,6 +45,13 @@ where
                 let rhs = self.expression(9)?;
                 AstExpression::unary(Operation::Sub, rhs)
             }
+            Token::LParen => {
+                let expr = self.expression(0)?;
+                match self.advance() {
+                    Token::RParen => expr,
+                    _ => return Err(ParsingError::MissingClosingParentheses),
+                }
+            }
             _ => return Err(ParsingError::Unknown),
         };
 
@@ -52,7 +61,7 @@ where
                 Token::Minus => Operation::Sub,
                 Token::Star => Operation::Mul,
                 Token::Slash => Operation::Div,
-                Token::EndOfFile => break,
+                Token::EndOfFile | Token::RParen => break,
                 _ => return Err(ParsingError::UnknownOperation),
             };
 
