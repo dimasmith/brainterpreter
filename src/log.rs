@@ -7,16 +7,20 @@ use crate::{chunk::Chunk, trace::VmStepTrace, vm::VmStack};
 pub struct LoggingTracer;
 
 impl VmStepTrace for LoggingTracer {
-    fn trace(&self, ip: usize, chunk: &Chunk, stack: &VmStack) {
+    fn trace_before(&self, ip: usize, chunk: &Chunk, stack: &VmStack) {
         debug!("{}", "=".repeat(16));
-        self.print_stack(stack);
         self.print_instructions_window(ip, chunk, 5);
+        self.print_stack(stack, "before");
+    }
+
+    fn trace_after(&self, _ip: usize, _chunk: &Chunk, stack: &VmStack) {
+        self.print_stack(stack, "after");
     }
 }
 
 impl LoggingTracer {
-    fn print_stack(&self, stack: &VmStack) {
-        debug!("= stack");
+    fn print_stack(&self, stack: &VmStack, stage: &str) {
+        debug!("= stack {}", stage);
         for i in 0..stack.len() {
             let value = stack.peek(i).unwrap();
             debug!("{}:\t{}", i, value);

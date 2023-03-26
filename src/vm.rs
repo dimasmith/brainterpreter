@@ -82,7 +82,7 @@ impl Vm {
     fn run(&mut self) -> Result<(), VmError> {
         while let Some(op) = self.chunk.op(self.ip) {
             if let Some(trace) = &self.trace {
-                trace.trace(self.ip, &self.chunk, &self.stack);
+                trace.trace_before(self.ip, &self.chunk, &self.stack);
             }
             self.ip += 1;
             match op {
@@ -100,6 +100,9 @@ impl Vm {
                 Op::Add => self.add()?,
                 Op::Cmp => self.compare()?,
                 Op::Neg => self.negate()?,
+            }
+            if let Some(trace) = &self.trace {
+                trace.trace_after(self.ip, &self.chunk, &self.stack);
             }
         }
         Ok(())
