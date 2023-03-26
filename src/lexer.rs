@@ -74,6 +74,17 @@ impl<'a> Lexer<'a> {
     }
 }
 
+impl <'a> Iterator for Lexer<'a> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_token() {
+            Token::EndOfFile => None,
+            t => Some(t),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

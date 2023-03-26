@@ -14,8 +14,12 @@ impl Chunk {
     }
 
     pub fn push(mut self, op: Op) -> Self {
-        self.ops.push(op);
+        self.add(op);
         self
+    }
+
+    pub fn add(&mut self, op: Op) {
+        self.ops.push(op);
     }
 
     pub fn op(&self, idx: usize) -> Option<&Op> {
