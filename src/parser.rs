@@ -106,10 +106,10 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::BinaryOperation(
+            AstExpression::binary_op(
                 Operation::Add,
-                Box::new(AstExpression::NumberLiteral(7.0)),
-                Box::new(AstExpression::NumberLiteral(8.0))
+                AstExpression::number(7),
+                AstExpression::number(8)
             )
         );
     }
@@ -130,14 +130,14 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::BinaryOperation(
+            AstExpression::binary_op(
                 Operation::Sub,
-                Box::new(AstExpression::BinaryOperation(
+                AstExpression::binary_op(
                     Operation::Add,
-                    Box::new(AstExpression::NumberLiteral(5.0)),
-                    Box::new(AstExpression::NumberLiteral(10.0)),
-                )),
-                Box::new(AstExpression::NumberLiteral(15.0)),
+                    AstExpression::number(5),
+                    AstExpression::number(10),
+                ),
+                AstExpression::number(15),
             )
         );
     }
