@@ -11,6 +11,8 @@ pub struct Compiler {
 impl Compiler {
     pub fn compile(&mut self, ast: &AstExpression) -> Chunk {
         self.expression(ast);
+        // small hack to display values. remove after adding statements
+        self.chunk.add(Op::Return);
         self.chunk.clone()
     }
 
