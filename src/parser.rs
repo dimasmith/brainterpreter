@@ -10,7 +10,6 @@ where
     T: Iterator<Item = Token>,
 {
     tokens: Peekable<T>,
-    last_token: Token,
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]
@@ -26,10 +25,8 @@ where
     T: Iterator<Item = Token>,
 {
     pub fn new(tokens: T) -> Self {
-        let t = tokens.peekable();
         Parser {
-            tokens: t,
-            last_token: Token::EndOfFile,
+            tokens: tokens.peekable(),
         }
     }
 
