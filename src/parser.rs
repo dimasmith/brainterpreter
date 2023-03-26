@@ -1,6 +1,6 @@
 //! Parser for the l9 interpreter
 
-use crate::ast::AstExpression;
+use crate::ast::{AstExpression, Operation};
 use crate::lexer::Token;
 use thiserror::Error;
 
@@ -32,32 +32,36 @@ where
     }
 
     fn expression(&mut self) -> Result<AstExpression, ParsingError> {
-        if let Some(lhs_token) = self.tokens.next() {
-            let lhs = match lhs_token {
-                Token::Number(n) => AstExpression::NumberLiteral(n),
+        let mut lhs = match self.advance() {
+            Token::Number(n) => AstExpression::NumberLiteral(n),
+            _ => return Err(ParsingError::Unknown),
+        };
+
+        loop {
+            let op = match self.advance() {
+                Token::Plus => Operation::Add,
+                Token::EndOfFile => break,
                 _ => return Err(ParsingError::Unknown),
             };
-            if let Some(op_token) = self.tokens.next() {
-                let op = match op_token {
-                    Token::Plus => {
-                        let rhs = self.expression().or(Err(ParsingError::MissingOperand))?;
-                        AstExpression::Add(Box::new(lhs), Box::new(rhs))
-                    }
-                    _ => return Err(ParsingError::Unknown),
-                };
-                Ok(op)
-            } else {
-                Ok(lhs)
-            }
-        } else {
-            Err(ParsingError::Unknown)
+
+            let rhs = self
+                .expression()
+                .map_err(|_| ParsingError::MissingOperand)?;
+            lhs = AstExpression::BinaryOperation(op, Box::new(lhs), Box::new(rhs));
         }
+
+        Ok(lhs)
+    }
+
+    fn advance(&mut self) -> Token {
+        self.tokens.next().unwrap_or(Token::EndOfFile)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ast::Operation;
 
     #[test]
     fn number_literal() {
@@ -78,7 +82,8 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::Add(
+            AstExpression::BinaryOperation(
+                Operation::Add,
                 Box::new(AstExpression::NumberLiteral(7.0)),
                 Box::new(AstExpression::NumberLiteral(8.0))
             )

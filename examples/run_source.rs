@@ -3,5 +3,5 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    interpret("19 + 28")
+    interpret("19 + 28 + 3")
 }

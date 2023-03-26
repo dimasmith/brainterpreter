@@ -1,5 +1,5 @@
 //! Compiles AST into virtual machine instructions
-use crate::ast::AstExpression;
+use crate::ast::{AstExpression, Operation};
 use crate::chunk::Chunk;
 use crate::ops::Op;
 
@@ -19,10 +19,12 @@ impl Compiler {
     fn expression(&mut self, ast: &AstExpression) {
         match ast {
             AstExpression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
-            AstExpression::Add(a, b) => {
+            AstExpression::BinaryOperation(op, a, b) => {
                 self.expression(b);
                 self.expression(a);
-                self.chunk.add(Op::Add);
+                match op {
+                    Operation::Add => self.chunk.add(Op::Add),
+                }
             }
             AstExpression::Cmp(a, b) => {
                 self.expression(b);
@@ -50,7 +52,8 @@ mod tests {
 
     #[test]
     fn compile_arithmetic_expressions() {
-        let add_expression = AstExpression::Add(
+        let add_expression = AstExpression::BinaryOperation(
+            Operation::Add,
             Box::new(AstExpression::NumberLiteral(3.0)),
             Box::new(AstExpression::NumberLiteral(8.5)),
         );
