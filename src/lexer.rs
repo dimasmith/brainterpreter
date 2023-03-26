@@ -1,9 +1,10 @@
 //! Lexer for the l9 source code
 
-use log::{debug, error};
+use crate::source::Position;
+use log::error;
 
 /// Lexical token of the l9 language
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Token {
     Plus,
     Minus,
@@ -16,10 +17,19 @@ pub enum Token {
     Error,
 }
 
+/// Adds debug information to the token
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SourceToken {
+    kind: Token,
+    source: Position,
+}
+
 pub struct Lexer<'a> {
     source: &'a str,
     start: usize,
     pos: usize,
+    line: usize,
+    column: usize,
 }
 
 impl<'a> Lexer<'a> {
@@ -28,32 +38,38 @@ impl<'a> Lexer<'a> {
             source,
             pos: 0,
             start: 0,
+            line: 1,
+            column: 1,
         }
     }
 
-    pub fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> SourceToken {
         self.skip_whitespace();
         if self.at_end() {
-            return Token::EndOfFile;
+            return self.create_token(Token::EndOfFile);
         }
         self.start = self.pos;
         let c = self.advance().expect("character exhausted prematurely");
         match c {
-            '+' => Token::Plus,
-            '-' => Token::Minus,
-            '*' => Token::Star,
-            '/' => Token::Slash,
-            '(' => Token::LParen,
-            ')' => Token::RParen,
+            '+' => self.create_token(Token::Plus),
+            '-' => self.create_token(Token::Minus),
+            '*' => self.create_token(Token::Star),
+            '/' => self.create_token(Token::Slash),
+            '(' => self.create_token(Token::LParen),
+            ')' => self.create_token(Token::RParen),
             '0'..='9' => self.number(),
             _ => {
                 error!("unknown token: {}", c);
-                Token::Error
+                Token::Error.with_position(self.src_pos())
             }
         }
     }
 
-    fn number(&mut self) -> Token {
+    fn create_token(&self, token: Token) -> SourceToken {
+        token.with_position(self.src_pos())
+    }
+
+    fn number(&mut self) -> SourceToken {
         while let Some(c) = self.peek(0) {
             if !c.is_ascii_digit() {
                 break;
@@ -72,12 +88,13 @@ impl<'a> Lexer<'a> {
         }
         let number_literal = &self.source[self.start..self.pos];
         let value: f64 = number_literal.parse().expect("must be a correct number");
-        Token::Number(value)
+        Token::Number(value).with_position(self.src_pos())
     }
 
     fn advance(&mut self) -> Option<char> {
         let c = self.source.chars().nth(self.pos);
         self.pos += 1;
+        self.column += 1;
         c
     }
 
@@ -94,19 +111,72 @@ impl<'a> Lexer<'a> {
             if !c.is_ascii_whitespace() {
                 break;
             }
+            if c == '\n' {
+                self.line += 1;
+                self.column = 0;
+            }
             self.advance();
         }
+    }
+
+    fn src_pos(&self) -> Position {
+        Position::new(self.line, self.column - 1)
     }
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Token;
+    type Item = SourceToken;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_token() {
-            Token::EndOfFile => None,
+            SourceToken {
+                kind: Token::EndOfFile,
+                ..
+            } => None,
             t => Some(t),
         }
+    }
+}
+
+impl From<Token> for SourceToken {
+    fn from(token: Token) -> Self {
+        SourceToken {
+            kind: token,
+            source: Position::default(),
+        }
+    }
+}
+
+impl SourceToken {
+    pub fn new(token: Token, source: Position) -> Self {
+        SourceToken {
+            kind: token,
+            source,
+        }
+    }
+
+    pub fn kind(&self) -> &Token {
+        &self.kind
+    }
+
+    pub fn source(&self) -> &Position {
+        &self.source
+    }
+}
+
+impl PartialEq<Token> for SourceToken {
+    fn eq(&self, other: &Token) -> bool {
+        &self.kind == other
+    }
+}
+
+impl Token {
+    pub fn with_position(self, pos: Position) -> SourceToken {
+        SourceToken::new(self, pos)
+    }
+
+    pub fn with_line(self, line: usize) -> SourceToken {
+        SourceToken::new(self, Position::new(line, 0))
     }
 }
 

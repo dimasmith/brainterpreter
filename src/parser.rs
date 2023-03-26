@@ -1,32 +1,35 @@
 //! Parser for the l9 interpreter
 
 use crate::ast::{AstExpression, Operation};
-use crate::lexer::Token;
+use crate::lexer::{SourceToken, Token};
+use crate::source::Position;
 use std::iter::Peekable;
 use thiserror::Error;
 
 pub struct Parser<T>
 where
-    T: Iterator<Item = Token>,
+    T: Iterator<Item = SourceToken>,
 {
     tokens: Peekable<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum ParsingError {
-    #[error("unknown error during parsing")]
-    Unknown,
-    #[error("missing operand")]
-    MissingOperand,
-    #[error("unknown operation")]
-    UnknownOperation,
-    #[error("missing closing parentheses")]
-    MissingClosingParentheses,
+    #[error("error during parsing at {0}")]
+    Unknown(Position),
+    #[error("unexpected token `{0:?}` at {1}")]
+    UnexpectedToken(Token, Position),
+    #[error("missing operand at {0}")]
+    MissingOperand(Position),
+    #[error("unknown operation at {0}")]
+    UnknownOperation(Position),
+    #[error("missing closing parentheses at {0}")]
+    MissingClosingParentheses(Position),
 }
 
 impl<T> Parser<T>
 where
-    T: Iterator<Item = Token>,
+    T: Iterator<Item = SourceToken>,
 {
     pub fn new(tokens: T) -> Self {
         Parser {
@@ -39,30 +42,32 @@ where
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<AstExpression, ParsingError> {
-        let mut lhs = match self.advance() {
-            Token::Number(n) => AstExpression::NumberLiteral(n),
+        let token = self.advance();
+        let mut lhs = match token.kind() {
+            Token::Number(n) => AstExpression::number(*n),
             Token::Minus => {
                 let rhs = self.expression(9)?;
                 AstExpression::unary(Operation::Sub, rhs)
             }
             Token::LParen => {
                 let expr = self.expression(0)?;
-                match self.advance() {
+                match self.advance().kind() {
                     Token::RParen => expr,
-                    _ => return Err(ParsingError::MissingClosingParentheses),
+                    _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
                 }
             }
-            _ => return Err(ParsingError::Unknown),
+            t => return Err(ParsingError::UnexpectedToken(*t, *token.source())),
         };
 
         loop {
-            let op = match self.peek() {
+            let token = self.peek();
+            let op = match token.kind() {
                 Token::Plus => Operation::Add,
                 Token::Minus => Operation::Sub,
                 Token::Star => Operation::Mul,
                 Token::Slash => Operation::Div,
                 Token::EndOfFile | Token::RParen => break,
-                _ => return Err(ParsingError::UnknownOperation),
+                _ => return Err(ParsingError::UnknownOperation(*token.source())),
             };
 
             let (left_binding, right_binding) = self.infix_binding(&op);
@@ -74,8 +79,8 @@ where
             self.advance();
             let rhs = self
                 .expression(right_binding)
-                .map_err(|_| ParsingError::MissingOperand)?;
-            lhs = AstExpression::BinaryOperation(op, Box::new(lhs), Box::new(rhs));
+                .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
+            lhs = AstExpression::binary(op, lhs, rhs);
         }
 
         Ok(lhs)
@@ -88,12 +93,17 @@ where
         }
     }
 
-    fn advance(&mut self) -> Token {
-        self.tokens.next().unwrap_or(Token::EndOfFile)
+    fn advance(&mut self) -> SourceToken {
+        self.tokens
+            .next()
+            .unwrap_or(SourceToken::from(Token::EndOfFile))
     }
 
-    fn peek(&mut self) -> Token {
-        self.tokens.peek().cloned().unwrap_or(Token::EndOfFile)
+    fn peek(&mut self) -> SourceToken {
+        self.tokens
+            .peek()
+            .cloned()
+            .unwrap_or(SourceToken::from(Token::EndOfFile))
     }
 }
 
@@ -104,7 +114,7 @@ mod tests {
 
     #[test]
     fn number_literal() {
-        let tokens = vec![Token::Number(42.0)].into_iter();
+        let tokens = vec![Token::Number(42.0).into()].into_iter();
         let mut parser = Parser::new(tokens);
 
         let ast = parser.parse().unwrap();
@@ -114,7 +124,12 @@ mod tests {
 
     #[test]
     fn addition_expression() {
-        let tokens = vec![Token::Number(7.0), Token::Plus, Token::Number(8.0)].into_iter();
+        let tokens = vec![
+            Token::Number(7.0).into(),
+            Token::Plus.into(),
+            Token::Number(8.0).into(),
+        ]
+        .into_iter();
         let mut parser = Parser::new(tokens);
 
         let ast = parser.parse().unwrap();
@@ -132,11 +147,11 @@ mod tests {
     #[test]
     fn same_priority_operation_expression() {
         let tokens = vec![
-            Token::Number(5.0),
-            Token::Plus,
-            Token::Number(10.0),
-            Token::Minus,
-            Token::Number(15.0),
+            Token::Number(5.0).into(),
+            Token::Plus.into(),
+            Token::Number(10.0).into(),
+            Token::Minus.into(),
+            Token::Number(15.0).into(),
         ]
         .into_iter();
         let mut parser = Parser::new(tokens);
@@ -159,11 +174,18 @@ mod tests {
 
     #[test]
     fn missing_rhs_infix_operation() {
-        let tokens = vec![Token::Number(7.0), Token::Plus].into_iter();
+        let tokens = vec![
+            SourceToken::from(Token::Number(7.0)),
+            SourceToken::from(Token::Plus),
+        ]
+        .into_iter();
         let mut parser = Parser::new(tokens);
 
         let parsing_error = parser.parse();
 
-        assert_eq!(parsing_error, Err(ParsingError::MissingOperand));
+        assert!(matches!(
+            parsing_error,
+            Err(ParsingError::MissingOperand(_))
+        ));
     }
 }
