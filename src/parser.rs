@@ -2,13 +2,15 @@
 
 use crate::ast::{AstExpression, Operation};
 use crate::lexer::Token;
+use std::iter::Peekable;
 use thiserror::Error;
 
 pub struct Parser<T>
 where
     T: Iterator<Item = Token>,
 {
-    tokens: T,
+    tokens: Peekable<T>,
+    last_token: Token,
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]
@@ -24,28 +26,40 @@ where
     T: Iterator<Item = Token>,
 {
     pub fn new(tokens: T) -> Self {
-        Parser { tokens }
+        let t = tokens.peekable();
+        Parser {
+            tokens: t,
+            last_token: Token::EndOfFile,
+        }
     }
 
     pub fn parse(&mut self) -> Result<AstExpression, ParsingError> {
-        self.expression()
+        self.expression(0)
     }
 
-    fn expression(&mut self) -> Result<AstExpression, ParsingError> {
+    fn expression(&mut self, min_binding: u8) -> Result<AstExpression, ParsingError> {
         let mut lhs = match self.advance() {
             Token::Number(n) => AstExpression::NumberLiteral(n),
             _ => return Err(ParsingError::Unknown),
         };
 
         loop {
-            let op = match self.advance() {
+            let op = match self.peek() {
                 Token::Plus => Operation::Add,
+                Token::Minus => Operation::Sub,
                 Token::EndOfFile => break,
                 _ => return Err(ParsingError::Unknown),
             };
 
+            let (left_binding, right_binding) = self.infix_binding(&op);
+
+            if left_binding < min_binding {
+                break;
+            }
+
+            self.advance();
             let rhs = self
-                .expression()
+                .expression(right_binding)
                 .map_err(|_| ParsingError::MissingOperand)?;
             lhs = AstExpression::BinaryOperation(op, Box::new(lhs), Box::new(rhs));
         }
@@ -53,8 +67,18 @@ where
         Ok(lhs)
     }
 
+    fn infix_binding(&self, op: &Operation) -> (u8, u8) {
+        match op {
+            Operation::Add | Operation::Sub => (1, 2),
+        }
+    }
+
     fn advance(&mut self) -> Token {
         self.tokens.next().unwrap_or(Token::EndOfFile)
+    }
+
+    fn peek(&mut self) -> Token {
+        self.tokens.peek().cloned().unwrap_or(Token::EndOfFile)
     }
 }
 

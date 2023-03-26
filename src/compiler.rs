@@ -24,6 +24,7 @@ impl Compiler {
                 self.expression(a);
                 match op {
                     Operation::Add => self.chunk.add(Op::Add),
+                    Operation::Sub => self.chunk.add(Op::Sub),
                 }
             }
             AstExpression::Cmp(a, b) => {

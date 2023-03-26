@@ -4,6 +4,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Plus,
+    Minus,
     Number(f64),
     EndOfFile,
     Error,
@@ -33,6 +34,7 @@ impl<'a> Lexer<'a> {
         let c = self.advance().expect("character exhausted prematurely");
         match c {
             '+' => Token::Plus,
+            '-' => Token::Minus,
             '0'..='9' => self.number(),
             _ => Token::Error,
         }
@@ -74,7 +76,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl <'a> Iterator for Lexer<'a> {
+impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {

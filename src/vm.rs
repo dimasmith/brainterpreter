@@ -98,6 +98,7 @@ impl Vm {
                     self.stack.push(value);
                 }
                 Op::Add => self.add()?,
+                Op::Sub => self.sub()?,
                 Op::Cmp => self.compare()?,
                 Op::Neg => self.negate()?,
             }
@@ -115,6 +116,23 @@ impl Vm {
         match (value_a, value_b) {
             (ValueType::Number(a), ValueType::Number(b)) => {
                 let result = a + b;
+                let result_value = ValueType::Number(result);
+                self.stack.push(result_value);
+            }
+            _ => {
+                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            }
+        }
+        Ok(())
+    }
+
+    fn sub(&mut self) -> Result<(), VmError> {
+        let value_a = self.stack.pop()?;
+        let value_b = self.stack.pop()?;
+
+        match (value_a, value_b) {
+            (ValueType::Number(a), ValueType::Number(b)) => {
+                let result = a - b;
                 let result_value = ValueType::Number(result);
                 self.stack.push(result_value);
             }

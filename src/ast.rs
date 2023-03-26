@@ -3,6 +3,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operation {
     Add,
+    Sub,
 }
 
 #[derive(Debug, Clone, PartialEq)]
