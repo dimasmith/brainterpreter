@@ -40,7 +40,7 @@ impl<'a> Lexer<'a> {
 
     fn number(&mut self) -> Token {
         while let Some(c) = self.peek(0) {
-            if !c.is_digit(10) {
+            if !c.is_ascii_digit() {
                 break;
             }
             self.advance();
