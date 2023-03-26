@@ -1,5 +1,7 @@
 //! Lexer for the l9 source code
 
+use log::{debug, error};
+
 /// Lexical token of the l9 language
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -44,7 +46,10 @@ impl<'a> Lexer<'a> {
             '(' => Token::LParen,
             ')' => Token::RParen,
             '0'..='9' => self.number(),
-            _ => Token::Error,
+            _ => {
+                error!("unknown token: {}", c);
+                Token::Error
+            }
         }
     }
 
