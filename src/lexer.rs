@@ -55,6 +55,16 @@ impl<'a> Lexer<'a> {
             }
             self.advance();
         }
+
+        if let Some('.') = self.peek(0) {
+            self.advance();
+            while let Some(c) = self.peek(0) {
+                if !c.is_ascii_digit() {
+                    break;
+                }
+                self.advance();
+            }
+        }
         let number_literal = &self.source[self.start..self.pos];
         let value: f64 = number_literal.parse().expect("must be a correct number");
         Token::Number(value)
@@ -122,7 +132,13 @@ mod tests {
     }
 
     #[test]
-    fn aritmetic_expressions() {
+    fn float_point_literal() {
+        let mut lexer = Lexer::new("3.14");
+        assert_eq!(lexer.next_token(), Token::Number(3.14));
+        assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+    #[test]
+    fn arithmetic_expressions() {
         let mut lexer = Lexer::new("42 + 7");
         assert_eq!(lexer.next_token(), Token::Number(42.0));
         assert_eq!(lexer.next_token(), Token::Plus);
