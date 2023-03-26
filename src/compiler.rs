@@ -29,6 +29,13 @@ impl Compiler {
                     Operation::Div => self.chunk.add(Op::Div),
                 }
             }
+            AstExpression::UnaryOperation(Operation::Sub, lhs) => {
+                self.expression(lhs);
+                self.chunk.add(Op::Neg)
+            }
+            AstExpression::UnaryOperation(op, _) => {
+                panic!("unsupported unary operation {:?}", op);
+            }
             AstExpression::Cmp(a, b) => {
                 self.expression(b);
                 self.expression(a);

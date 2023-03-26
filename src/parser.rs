@@ -39,6 +39,10 @@ where
     fn expression(&mut self, min_binding: u8) -> Result<AstExpression, ParsingError> {
         let mut lhs = match self.advance() {
             Token::Number(n) => AstExpression::NumberLiteral(n),
+            Token::Minus => {
+                let rhs = self.expression(9)?;
+                AstExpression::unary(Operation::Sub, rhs)
+            }
             _ => return Err(ParsingError::Unknown),
         };
 
@@ -108,7 +112,7 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::binary_op(
+            AstExpression::binary(
                 Operation::Add,
                 AstExpression::number(7),
                 AstExpression::number(8)
@@ -132,9 +136,9 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::binary_op(
+            AstExpression::binary(
                 Operation::Sub,
-                AstExpression::binary_op(
+                AstExpression::binary(
                     Operation::Add,
                     AstExpression::number(5),
                     AstExpression::number(10),
