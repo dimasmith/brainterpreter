@@ -1,10 +1,12 @@
 //! Lexer for the l9 source code
 
-/// Lexical token of the l9 languate
+/// Lexical token of the l9 language
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Plus,
     Minus,
+    Star,
+    Slash,
     Number(f64),
     EndOfFile,
     Error,
@@ -35,6 +37,8 @@ impl<'a> Lexer<'a> {
         match c {
             '+' => Token::Plus,
             '-' => Token::Minus,
+            '*' => Token::Star,
+            '/' => Token::Slash,
             '0'..='9' => self.number(),
             _ => Token::Error,
         }

@@ -6,6 +6,8 @@ use crate::ast::AstExpression::{BinaryOperation, NumberLiteral};
 pub enum Operation {
     Add,
     Sub,
+    Mul,
+    Div,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -11,6 +11,8 @@ pub enum Op {
     /// Add two top elements of the stack.
     Add,
     Sub,
+    Mul,
+    Div,
     /// Compares top values of the stack. Puts comparison result on top of the stack.
     Cmp,
     /// Negates value on top of the stack.
@@ -24,6 +26,8 @@ impl Display for Op {
             Op::LoadFloat(n) => write!(f, "LD_F, {}", n),
             Op::Add => write!(f, "ADD"),
             Op::Sub => write!(f, "SUB"),
+            Op::Mul => write!(f, "MUL"),
+            Op::Div => write!(f, "DIV"),
             Op::Cmp => write!(f, "CMP"),
             Op::Neg => write!(f, "NEG"),
         }

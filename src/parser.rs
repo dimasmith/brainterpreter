@@ -18,6 +18,8 @@ pub enum ParsingError {
     Unknown,
     #[error("missing operand")]
     MissingOperand,
+    #[error("unknown operation")]
+    UnknownOperation,
 }
 
 impl<T> Parser<T>
@@ -44,8 +46,10 @@ where
             let op = match self.peek() {
                 Token::Plus => Operation::Add,
                 Token::Minus => Operation::Sub,
+                Token::Star => Operation::Mul,
+                Token::Slash => Operation::Div,
                 Token::EndOfFile => break,
-                _ => return Err(ParsingError::Unknown),
+                _ => return Err(ParsingError::UnknownOperation),
             };
 
             let (left_binding, right_binding) = self.infix_binding(&op);
@@ -67,6 +71,7 @@ where
     fn infix_binding(&self, op: &Operation) -> (u8, u8) {
         match op {
             Operation::Add | Operation::Sub => (1, 2),
+            Operation::Mul | Operation::Div => (3, 4),
         }
     }
 
