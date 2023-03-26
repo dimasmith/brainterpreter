@@ -115,6 +115,34 @@ mod tests {
     }
 
     #[test]
+    fn same_priority_operation_expression() {
+        let tokens = vec![
+            Token::Number(5.0),
+            Token::Plus,
+            Token::Number(10.0),
+            Token::Minus,
+            Token::Number(15.0),
+        ]
+        .into_iter();
+        let mut parser = Parser::new(tokens);
+
+        let ast = parser.parse().unwrap();
+
+        assert_eq!(
+            ast,
+            AstExpression::BinaryOperation(
+                Operation::Sub,
+                Box::new(AstExpression::BinaryOperation(
+                    Operation::Add,
+                    Box::new(AstExpression::NumberLiteral(5.0)),
+                    Box::new(AstExpression::NumberLiteral(10.0)),
+                )),
+                Box::new(AstExpression::NumberLiteral(15.0)),
+            )
+        );
+    }
+
+    #[test]
     fn missing_rhs_infix_operation() {
         let tokens = vec![Token::Number(7.0), Token::Plus].into_iter();
         let mut parser = Parser::new(tokens);
