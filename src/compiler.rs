@@ -1,5 +1,5 @@
 //! Compiles AST into virtual machine instructions
-use crate::ast::{Expression, Operation, Statement};
+use crate::ast::{Expression, Operation, Program, Statement};
 use crate::chunk::Chunk;
 use crate::ops::Op;
 
@@ -9,6 +9,13 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    pub fn compile_program(&mut self, program: Program) -> Chunk {
+        for statement in program.statements() {
+            self.statement(statement);
+        }
+        self.chunk.clone()
+    }
+
     pub fn compile(&mut self, ast: &Statement) -> Chunk {
         self.statement(ast);
         self.chunk.clone()

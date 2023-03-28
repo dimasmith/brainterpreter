@@ -12,6 +12,7 @@ pub enum Token {
     Slash,
     LParen,
     RParen,
+    Semicolon,
     Number(f64),
     Print,
     Identifier(String),
@@ -80,6 +81,7 @@ impl<'a> Lexer<'a> {
             }
             '(' => Some(Token::LParen.with_position(self.src_pos())),
             ')' => Some(Token::RParen.with_position(self.src_pos())),
+            ';' => Some(Token::Semicolon.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
             _ => {

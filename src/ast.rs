@@ -10,6 +10,11 @@ pub enum Operation {
     Div,
 }
 
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Program {
+    statements: Vec<Statement>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     NumberLiteral(f64),
@@ -23,6 +28,20 @@ pub enum Expression {
 pub enum Statement {
     Expression(Expression),
     Print(Expression),
+}
+
+impl Program {
+    pub fn new(statements: Vec<Statement>) -> Self {
+        Program { statements }
+    }
+
+    pub fn add_statement(&mut self, statement: Statement) {
+        self.statements.push(statement);
+    }
+
+    pub fn statements(&self) -> &[Statement] {
+        &self.statements
+    }
 }
 
 impl Expression {

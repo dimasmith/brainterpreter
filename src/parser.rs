@@ -1,6 +1,6 @@
 //! Parser for the l9 interpreter
 
-use crate::ast::{Expression, Operation, Statement};
+use crate::ast::{Expression, Operation, Program, Statement};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
 use std::iter::Peekable;
@@ -37,13 +37,21 @@ where
         }
     }
 
+    pub fn parse_program(&mut self) -> Result<Program, ParsingError> {
+        let mut program = Program::default();
+        while !self.tokens.peek().is_none() {
+            program.add_statement(self.statement()?);
+        }
+        Ok(program)
+    }
+
     pub fn parse(&mut self) -> Result<Statement, ParsingError> {
         self.statement()
     }
 
     fn statement(&mut self) -> Result<Statement, ParsingError> {
         let token = self.advance();
-        match token.kind() {
+        let statement = match token.kind() {
             Token::Print => {
                 let expr = self.expression(0)?;
                 Ok(Statement::Print(expr))
@@ -52,7 +60,9 @@ where
                 let expr = self.expression(0)?;
                 Ok(Statement::Expression(expr))
             }
-        }
+        };
+        self.consume(Token::Semicolon)?;
+        statement
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
@@ -85,6 +95,7 @@ where
                 Token::Minus => Operation::Sub,
                 Token::Star => Operation::Mul,
                 Token::Slash => Operation::Div,
+                Token::Semicolon => break,
                 Token::EndOfFile | Token::RParen => break,
                 _ => return Err(ParsingError::UnknownOperation(*token.source())),
             };
@@ -123,6 +134,18 @@ where
             .peek()
             .cloned()
             .unwrap_or(SourceToken::from(Token::EndOfFile))
+    }
+
+    fn consume(&mut self, expected: Token) -> Result<(), ParsingError> {
+        let token = self.advance();
+        if *token.kind() == expected {
+            Ok(())
+        } else {
+            Err(ParsingError::UnexpectedToken(
+                token.kind().clone(),
+                token.source().clone(),
+            ))
+        }
     }
 }
 

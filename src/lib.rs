@@ -21,9 +21,9 @@ pub mod vm;
 pub fn interpret(source: &str) -> Result<(), Box<dyn Error>> {
     let lexer = Lexer::new(source);
     let mut parser = Parser::new(lexer);
-    let ast = parser.parse()?;
+    let ast = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let chunk = compiler.compile(&ast);
+    let chunk = compiler.compile_program(ast);
     let mut vm = Vm::default();
     vm.interpret(chunk)?;
 
