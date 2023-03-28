@@ -1,6 +1,6 @@
 //! Parser for the l9 interpreter
 
-use crate::ast::{Expression, Operation};
+use crate::ast::{Expression, Operation, Statement};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
 use std::iter::Peekable;
@@ -37,8 +37,22 @@ where
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expression, ParsingError> {
-        self.expression(0)
+    pub fn parse(&mut self) -> Result<Statement, ParsingError> {
+        self.statement()
+    }
+
+    fn statement(&mut self) -> Result<Statement, ParsingError> {
+        let token = self.advance();
+        match token.kind() {
+            Token::Print => {
+                let expr = self.expression(0)?;
+                Ok(Statement::Print(expr))
+            }
+            _ => {
+                let expr = self.expression(0)?;
+                Ok(Statement::Expression(expr))
+            }
+        }
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
@@ -56,7 +70,12 @@ where
                     _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
                 }
             }
-            t => return Err(ParsingError::UnexpectedToken(*t, *token.source())),
+            t => {
+                return Err(ParsingError::UnexpectedToken(
+                    t.clone(),
+                    token.source().clone(),
+                ))
+            }
         };
 
         loop {
@@ -117,7 +136,7 @@ mod tests {
         let tokens = vec![Token::Number(42.0).into()].into_iter();
         let mut parser = Parser::new(tokens);
 
-        let ast = parser.parse().unwrap();
+        let ast = parser.expression(0).unwrap();
 
         assert_eq!(ast, Expression::NumberLiteral(42.0));
     }
@@ -132,7 +151,7 @@ mod tests {
         .into_iter();
         let mut parser = Parser::new(tokens);
 
-        let ast = parser.parse().unwrap();
+        let ast = parser.expression(0).unwrap();
 
         assert_eq!(
             ast,
@@ -152,7 +171,7 @@ mod tests {
         .into_iter();
         let mut parser = Parser::new(tokens);
 
-        let ast = parser.parse().unwrap();
+        let ast = parser.expression(0).unwrap();
 
         assert_eq!(
             ast,
@@ -177,7 +196,7 @@ mod tests {
         .into_iter();
         let mut parser = Parser::new(tokens);
 
-        let parsing_error = parser.parse();
+        let parsing_error = parser.expression(0);
 
         assert!(matches!(
             parsing_error,

@@ -4,7 +4,7 @@ use crate::source::Position;
 use log::error;
 
 /// Lexical token of the l9 language
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Plus,
     Minus,
@@ -13,12 +13,14 @@ pub enum Token {
     LParen,
     RParen,
     Number(f64),
+    Print,
+    Identifier(String),
     EndOfFile,
     Error,
 }
 
 /// Adds debug information to the token
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SourceToken {
     kind: Token,
     source: Position,
@@ -79,6 +81,7 @@ impl<'a> Lexer<'a> {
             '(' => Some(Token::LParen.with_position(self.src_pos())),
             ')' => Some(Token::RParen.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
+            'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
             _ => {
                 error!("unknown token: {}", c);
                 Some(Token::Error.with_position(self.src_pos()))
@@ -106,6 +109,20 @@ impl<'a> Lexer<'a> {
         let number_literal = &self.source[self.start..self.pos];
         let value: f64 = number_literal.parse().expect("must be a correct number");
         Token::Number(value).with_position(self.src_pos())
+    }
+
+    fn identifier(&mut self) -> SourceToken {
+        while let Some(c) = self.peek(0) {
+            if !c.is_ascii_alphanumeric() && c != '_' {
+                break;
+            }
+            self.advance();
+        }
+        let identifier = &self.source[self.start..self.pos];
+        match identifier {
+            "print" => Token::Print.with_position(self.src_pos()),
+            _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
+        }
     }
 
     fn advance(&mut self) -> Option<char> {
@@ -257,6 +274,21 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Number(42.0));
         assert_eq!(lexer.next_token(), Token::Plus);
         assert_eq!(lexer.next_token(), Token::Number(7.0));
+        assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn print_statement() {
+        let mut lexer = Lexer::new("print 42");
+        assert_eq!(lexer.next_token(), Token::Print);
+        assert_eq!(lexer.next_token(), Token::Number(42.0));
+        assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn identifier() {
+        let mut lexer = Lexer::new("foo");
+        assert_eq!(lexer.next_token(), Token::Identifier("foo".to_string()));
         assert_eq!(lexer.next_token(), Token::EndOfFile);
     }
 }

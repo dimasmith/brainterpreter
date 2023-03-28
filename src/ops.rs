@@ -17,6 +17,8 @@ pub enum Op {
     Cmp,
     /// Negates value on top of the stack.
     Neg,
+    /// Prints value on top of the stack.
+    Print,
 }
 
 impl Display for Op {
@@ -30,6 +32,7 @@ impl Display for Op {
             Op::Div => write!(f, "DIV"),
             Op::Cmp => write!(f, "CMP"),
             Op::Neg => write!(f, "NEG"),
+            Op::Print => write!(f, "PRN"),
         }
     }
 }

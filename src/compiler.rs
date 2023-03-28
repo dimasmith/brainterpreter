@@ -1,5 +1,5 @@
 //! Compiles AST into virtual machine instructions
-use crate::ast::{Expression, Operation};
+use crate::ast::{Expression, Operation, Statement};
 use crate::chunk::Chunk;
 use crate::ops::Op;
 
@@ -9,11 +9,19 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(&mut self, ast: &Expression) -> Chunk {
-        self.expression(ast);
-        // small hack to display values. remove after adding statements
-        self.chunk.add(Op::Return);
+    pub fn compile(&mut self, ast: &Statement) -> Chunk {
+        self.statement(ast);
         self.chunk.clone()
+    }
+
+    fn statement(&mut self, ast: &Statement) {
+        match ast {
+            Statement::Expression(expr) => self.expression(expr),
+            Statement::Print(expr) => {
+                self.expression(expr);
+                self.chunk.add(Op::Print);
+            }
+        }
     }
 
     fn expression(&mut self, ast: &Expression) {
@@ -52,7 +60,7 @@ mod tests {
 
     #[test]
     fn compile_number_literal() {
-        let number = Expression::NumberLiteral(42.0);
+        let number = Statement::expression(Expression::number(42.0));
         let mut compiler = Compiler::default();
 
         let chunk = compiler.compile(&number);
@@ -67,9 +75,10 @@ mod tests {
             Box::new(Expression::NumberLiteral(3.0)),
             Box::new(Expression::NumberLiteral(8.5)),
         );
+        let add_statement = Statement::expression(add_expression.clone());
         let mut compiler = Compiler::default();
 
-        let chunk: Chunk = compiler.compile(&add_expression);
+        let chunk: Chunk = compiler.compile(&add_statement);
 
         assert_eq!(chunk.op(0), Some(&Op::LoadFloat(8.5)));
         assert_eq!(chunk.op(1), Some(&Op::LoadFloat(3.0)));

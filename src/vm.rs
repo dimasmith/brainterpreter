@@ -103,6 +103,7 @@ impl Vm {
                 Op::Div => self.div()?,
                 Op::Cmp => self.compare()?,
                 Op::Neg => self.negate()?,
+                Op::Print => self.print()?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -211,6 +212,24 @@ impl Vm {
             ValueType::Number(n) => {
                 let value = -n;
                 self.stack.push(ValueType::Number(value));
+            }
+            _ => {
+                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            }
+        }
+        Ok(())
+    }
+
+    fn print(&mut self) -> Result<(), VmError> {
+        match self.stack.pop()? {
+            ValueType::Number(n) => {
+                println!("{}", n);
+            }
+            ValueType::Bool(b) => {
+                println!("{}", b);
+            }
+            ValueType::Address(a) => {
+                println!("{}", a);
             }
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));

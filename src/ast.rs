@@ -18,6 +18,13 @@ pub enum Expression {
     Cmp(Box<Expression>, Box<Expression>),
 }
 
+/// Represents a statement in the l9 language.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Statement {
+    Expression(Expression),
+    Print(Expression),
+}
+
 impl Expression {
     pub fn binary(op: Operation, lhs: Expression, rhs: Expression) -> Self {
         BinaryOperation(op, Box::new(lhs), Box::new(rhs))
@@ -29,5 +36,15 @@ impl Expression {
 
     pub fn number(n: impl Into<f64>) -> Self {
         NumberLiteral(n.into())
+    }
+}
+
+impl Statement {
+    pub fn expression(expr: Expression) -> Self {
+        Statement::Expression(expr)
+    }
+
+    pub fn print(expr: Expression) -> Self {
+        Statement::Print(expr)
     }
 }
