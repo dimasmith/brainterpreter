@@ -1,6 +1,6 @@
 //! Abstract syntax tree for l9 language
 
-use crate::ast::AstExpression::{BinaryOperation, NumberLiteral, UnaryOperation};
+use crate::ast::Expression::{BinaryOperation, NumberLiteral, UnaryOperation};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operation {
@@ -11,19 +11,19 @@ pub enum Operation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum AstExpression {
+pub enum Expression {
     NumberLiteral(f64),
-    BinaryOperation(Operation, Box<AstExpression>, Box<AstExpression>),
-    UnaryOperation(Operation, Box<AstExpression>),
-    Cmp(Box<AstExpression>, Box<AstExpression>),
+    BinaryOperation(Operation, Box<Expression>, Box<Expression>),
+    UnaryOperation(Operation, Box<Expression>),
+    Cmp(Box<Expression>, Box<Expression>),
 }
 
-impl AstExpression {
-    pub fn binary(op: Operation, lhs: AstExpression, rhs: AstExpression) -> Self {
+impl Expression {
+    pub fn binary(op: Operation, lhs: Expression, rhs: Expression) -> Self {
         BinaryOperation(op, Box::new(lhs), Box::new(rhs))
     }
 
-    pub fn unary(op: Operation, lhs: AstExpression) -> Self {
+    pub fn unary(op: Operation, lhs: Expression) -> Self {
         UnaryOperation(op, Box::new(lhs))
     }
 

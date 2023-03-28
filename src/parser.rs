@@ -1,6 +1,6 @@
 //! Parser for the l9 interpreter
 
-use crate::ast::{AstExpression, Operation};
+use crate::ast::{Expression, Operation};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
 use std::iter::Peekable;
@@ -37,17 +37,17 @@ where
         }
     }
 
-    pub fn parse(&mut self) -> Result<AstExpression, ParsingError> {
+    pub fn parse(&mut self) -> Result<Expression, ParsingError> {
         self.expression(0)
     }
 
-    fn expression(&mut self, min_binding: u8) -> Result<AstExpression, ParsingError> {
+    fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
         let token = self.advance();
         let mut lhs = match token.kind() {
-            Token::Number(n) => AstExpression::number(*n),
+            Token::Number(n) => Expression::number(*n),
             Token::Minus => {
                 let rhs = self.expression(9)?;
-                AstExpression::unary(Operation::Sub, rhs)
+                Expression::unary(Operation::Sub, rhs)
             }
             Token::LParen => {
                 let expr = self.expression(0)?;
@@ -80,7 +80,7 @@ where
             let rhs = self
                 .expression(right_binding)
                 .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
-            lhs = AstExpression::binary(op, lhs, rhs);
+            lhs = Expression::binary(op, lhs, rhs);
         }
 
         Ok(lhs)
@@ -119,7 +119,7 @@ mod tests {
 
         let ast = parser.parse().unwrap();
 
-        assert_eq!(ast, AstExpression::NumberLiteral(42.0));
+        assert_eq!(ast, Expression::NumberLiteral(42.0));
     }
 
     #[test]
@@ -136,11 +136,7 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::binary(
-                Operation::Add,
-                AstExpression::number(7),
-                AstExpression::number(8)
-            )
+            Expression::binary(Operation::Add, Expression::number(7), Expression::number(8))
         );
     }
 
@@ -160,14 +156,14 @@ mod tests {
 
         assert_eq!(
             ast,
-            AstExpression::binary(
+            Expression::binary(
                 Operation::Sub,
-                AstExpression::binary(
+                Expression::binary(
                     Operation::Add,
-                    AstExpression::number(5),
-                    AstExpression::number(10),
+                    Expression::number(5),
+                    Expression::number(10),
                 ),
-                AstExpression::number(15),
+                Expression::number(15),
             )
         );
     }

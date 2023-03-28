@@ -1,5 +1,5 @@
 //! Compiles AST into virtual machine instructions
-use crate::ast::{AstExpression, Operation};
+use crate::ast::{Expression, Operation};
 use crate::chunk::Chunk;
 use crate::ops::Op;
 
@@ -9,17 +9,17 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(&mut self, ast: &AstExpression) -> Chunk {
+    pub fn compile(&mut self, ast: &Expression) -> Chunk {
         self.expression(ast);
         // small hack to display values. remove after adding statements
         self.chunk.add(Op::Return);
         self.chunk.clone()
     }
 
-    fn expression(&mut self, ast: &AstExpression) {
+    fn expression(&mut self, ast: &Expression) {
         match ast {
-            AstExpression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
-            AstExpression::BinaryOperation(op, a, b) => {
+            Expression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
+            Expression::BinaryOperation(op, a, b) => {
                 self.expression(b);
                 self.expression(a);
                 match op {
@@ -29,14 +29,14 @@ impl Compiler {
                     Operation::Div => self.chunk.add(Op::Div),
                 }
             }
-            AstExpression::UnaryOperation(Operation::Sub, lhs) => {
+            Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs);
                 self.chunk.add(Op::Neg)
             }
-            AstExpression::UnaryOperation(op, _) => {
+            Expression::UnaryOperation(op, _) => {
                 panic!("unsupported unary operation {:?}", op);
             }
-            AstExpression::Cmp(a, b) => {
+            Expression::Cmp(a, b) => {
                 self.expression(b);
                 self.expression(a);
                 self.chunk.add(Op::Cmp);
@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn compile_number_literal() {
-        let number = AstExpression::NumberLiteral(42.0);
+        let number = Expression::NumberLiteral(42.0);
         let mut compiler = Compiler::default();
 
         let chunk = compiler.compile(&number);
@@ -62,10 +62,10 @@ mod tests {
 
     #[test]
     fn compile_arithmetic_expressions() {
-        let add_expression = AstExpression::BinaryOperation(
+        let add_expression = Expression::BinaryOperation(
             Operation::Add,
-            Box::new(AstExpression::NumberLiteral(3.0)),
-            Box::new(AstExpression::NumberLiteral(8.5)),
+            Box::new(Expression::NumberLiteral(3.0)),
+            Box::new(Expression::NumberLiteral(8.5)),
         );
         let mut compiler = Compiler::default();
 

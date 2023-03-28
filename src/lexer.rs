@@ -44,29 +44,46 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next_token(&mut self) -> SourceToken {
+        let mut maybe_token = self.advance_token();
+        while maybe_token.is_none() {
+            maybe_token = self.advance_token();
+        }
+        maybe_token.unwrap()
+    }
+
+    fn advance_token(&mut self) -> Option<SourceToken> {
         self.skip_whitespace();
         if self.at_end() {
-            return self.create_token(Token::EndOfFile);
+            return Some(Token::EndOfFile.with_position(self.src_pos()));
         }
         self.start = self.pos;
         let c = self.advance().expect("character exhausted prematurely");
         match c {
-            '+' => self.create_token(Token::Plus),
-            '-' => self.create_token(Token::Minus),
-            '*' => self.create_token(Token::Star),
-            '/' => self.create_token(Token::Slash),
-            '(' => self.create_token(Token::LParen),
-            ')' => self.create_token(Token::RParen),
-            '0'..='9' => self.number(),
+            '+' => Some(Token::Plus.with_position(self.src_pos())),
+            '-' => Some(Token::Minus.with_position(self.src_pos())),
+            '*' => Some(Token::Star.with_position(self.src_pos())),
+            '/' => {
+                if let Some('/') = self.peek(0) {
+                    self.advance();
+                    while let Some(c) = self.peek(0) {
+                        if c == '\n' {
+                            break;
+                        }
+                        self.advance();
+                    }
+                    None
+                } else {
+                    Some(Token::Slash.with_position(self.src_pos()))
+                }
+            }
+            '(' => Some(Token::LParen.with_position(self.src_pos())),
+            ')' => Some(Token::RParen.with_position(self.src_pos())),
+            '0'..='9' => Some(self.number()),
             _ => {
                 error!("unknown token: {}", c);
-                Token::Error.with_position(self.src_pos())
+                Some(Token::Error.with_position(self.src_pos()))
             }
         }
-    }
-
-    fn create_token(&self, token: Token) -> SourceToken {
-        token.with_position(self.src_pos())
     }
 
     fn number(&mut self) -> SourceToken {
@@ -214,7 +231,29 @@ mod tests {
     }
     #[test]
     fn arithmetic_expressions() {
-        let mut lexer = Lexer::new("42 + 7");
+        let mut lexer = Lexer::new("42 + 8 / 2");
+        assert_eq!(lexer.next_token(), Token::Number(42.0));
+        assert_eq!(lexer.next_token(), Token::Plus);
+        assert_eq!(lexer.next_token(), Token::Number(8.0));
+        assert_eq!(lexer.next_token(), Token::Slash);
+        assert_eq!(lexer.next_token(), Token::Number(2.0));
+    }
+
+    #[test]
+    fn inline_comment() {
+        let mut lexer = Lexer::new("42 + 7 // this is a comment");
+        assert_eq!(lexer.next_token(), Token::Number(42.0));
+        assert_eq!(lexer.next_token(), Token::Plus);
+        assert_eq!(lexer.next_token(), Token::Number(7.0));
+        assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn line_comment() {
+        let mut lexer = Lexer::new(
+            "// comment
+            42 + 7",
+        );
         assert_eq!(lexer.next_token(), Token::Number(42.0));
         assert_eq!(lexer.next_token(), Token::Plus);
         assert_eq!(lexer.next_token(), Token::Number(7.0));
