@@ -6,11 +6,9 @@ use crate::vm::Vm;
 use std::error::Error;
 
 pub mod ast;
-pub mod chunk;
 pub mod compiler;
 pub mod lexer;
 pub mod log;
-pub mod ops;
 pub mod parser;
 pub mod source;
 pub mod trace;

@@ -1,10 +1,12 @@
 //! Virtual machine to support running l9 toy programming language
-use crate::chunk::Chunk;
 use crate::log::LoggingTracer;
-use crate::ops::Op;
 use crate::trace::VmStepTrace;
 use crate::value::ValueType;
+use opcode::Chunk;
+use opcode::Op;
 use thiserror::Error;
+
+pub mod opcode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Error)]
 pub enum VmError {

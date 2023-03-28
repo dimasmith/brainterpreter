@@ -1,7 +1,6 @@
 //! Compiles AST into virtual machine instructions
 use crate::ast::{Expression, Operation, Program, Statement};
-use crate::chunk::Chunk;
-use crate::ops::Op;
+use crate::vm::opcode::{Chunk, Op};
 
 #[derive(Debug, Clone, Default)]
 pub struct Compiler {

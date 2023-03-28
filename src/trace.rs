@@ -1,6 +1,6 @@
 //! Instruments to trace virtual machine execution
 
-use crate::chunk::Chunk;
+use crate::vm::opcode::Chunk;
 use crate::vm::VmStack;
 use std::fmt::Debug;
 

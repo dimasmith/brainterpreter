@@ -1,7 +1,8 @@
 //! Logging facilities
+use crate::trace::VmStepTrace;
+use crate::vm::opcode::Chunk;
+use crate::vm::VmStack;
 use log::debug;
-
-use crate::{chunk::Chunk, trace::VmStepTrace, vm::VmStack};
 
 #[derive(Debug, Default)]
 pub struct LoggingTracer;
