@@ -70,7 +70,7 @@ where
         let mut lhs = match token.kind() {
             Token::Number(n) => Expression::number(*n),
             Token::Minus => {
-                let rhs = self.expression(9)?;
+                let rhs = self.expression(5)?;
                 Expression::unary(Operation::Sub, rhs)
             }
             Token::LParen => {
@@ -95,31 +95,34 @@ where
                 Token::Minus => Operation::Sub,
                 Token::Star => Operation::Mul,
                 Token::Slash => Operation::Div,
-                Token::Semicolon => break,
-                Token::EndOfFile | Token::RParen => break,
+                Token::EndOfFile | Token::RParen | Token::Semicolon => break,
                 _ => return Err(ParsingError::UnknownOperation(*token.source())),
             };
 
-            let (left_binding, right_binding) = self.infix_binding(&op);
+            if let Some((left_binding, right_binding)) = self.infix_binding(&op) {
+                if left_binding < min_binding {
+                    break;
+                }
 
-            if left_binding < min_binding {
-                break;
+                self.advance();
+                let rhs = self
+                    .expression(right_binding)
+                    .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
+                lhs = Expression::binary(op, lhs, rhs);
+
+                continue;
             }
 
-            self.advance();
-            let rhs = self
-                .expression(right_binding)
-                .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
-            lhs = Expression::binary(op, lhs, rhs);
+            break;
         }
 
         Ok(lhs)
     }
 
-    fn infix_binding(&self, op: &Operation) -> (u8, u8) {
+    fn infix_binding(&self, op: &Operation) -> Option<(u8, u8)> {
         match op {
-            Operation::Add | Operation::Sub => (1, 2),
-            Operation::Mul | Operation::Div => (3, 4),
+            Operation::Add | Operation::Sub => Some((1, 2)),
+            Operation::Mul | Operation::Div => Some((3, 4)),
         }
     }
 
