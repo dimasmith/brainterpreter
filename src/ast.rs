@@ -8,6 +8,13 @@ pub enum Operation {
     Sub,
     Mul,
     Div,
+    Equal,
+    NotEqual,
+    Less,
+    Greater,
+    LessOrEqual,
+    GreaterOrEqual,
+    Not,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]

@@ -54,6 +54,22 @@ impl Compiler {
                     Operation::Sub => self.chunk.add(Op::Sub),
                     Operation::Mul => self.chunk.add(Op::Mul),
                     Operation::Div => self.chunk.add(Op::Div),
+                    Operation::Equal => self.chunk.add(Op::Cmp),
+                    Operation::NotEqual => {
+                        self.chunk.add(Op::Cmp);
+                        self.chunk.add(Op::Neg)
+                    }
+                    Operation::Less => {
+                        self.chunk.add(Op::Ge);
+                        self.chunk.add(Op::Neg)
+                    }
+                    Operation::Greater => {
+                        self.chunk.add(Op::Le);
+                        self.chunk.add(Op::Neg)
+                    }
+                    Operation::LessOrEqual => self.chunk.add(Op::Le),
+                    Operation::GreaterOrEqual => self.chunk.add(Op::Ge),
+                    Operation::Not => panic!("not is not a binary operation"),
                 }
             }
             Expression::Variable(name) => {

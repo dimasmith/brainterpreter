@@ -109,6 +109,12 @@ where
                 Token::Minus => Operation::Sub,
                 Token::Star => Operation::Mul,
                 Token::Slash => Operation::Div,
+                Token::EqualEqual => Operation::Equal,
+                Token::BangEqual => Operation::NotEqual,
+                Token::Less => Operation::Less,
+                Token::LessEqual => Operation::LessOrEqual,
+                Token::Greater => Operation::Greater,
+                Token::GreaterEqual => Operation::GreaterOrEqual,
                 Token::EndOfFile | Token::RParen | Token::Semicolon => break,
                 _ => return Err(ParsingError::UnknownOperation(*token.source())),
             };
@@ -135,8 +141,12 @@ where
 
     fn infix_binding(&self, op: &Operation) -> Option<(u8, u8)> {
         match op {
-            Operation::Add | Operation::Sub => Some((1, 2)),
-            Operation::Mul | Operation::Div => Some((3, 4)),
+            Operation::Add | Operation::Sub => Some((3, 4)),
+            Operation::Mul | Operation::Div => Some((5, 6)),
+            Operation::Equal | Operation::NotEqual => Some((1, 2)),
+            Operation::Less | Operation::LessOrEqual => Some((1, 2)),
+            Operation::Greater | Operation::GreaterOrEqual => Some((1, 2)),
+            Operation::Not => None,
         }
     }
 

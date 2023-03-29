@@ -25,6 +25,8 @@ pub enum VmRuntimeError {
     TypeMismatch,
     #[error("variable {0} is not defined")]
     UndefinedVariable(String),
+    #[error("wrong operation")]
+    WrongOperation,
 }
 
 #[derive(Debug)]
@@ -103,11 +105,9 @@ impl Vm {
                 Op::Nil => {
                     self.stack.push(ValueType::Nil);
                 }
-                Op::Add => self.add()?,
-                Op::Sub => self.sub()?,
-                Op::Mul => self.mul()?,
-                Op::Div => self.div()?,
-                Op::Cmp => self.compare()?,
+                Op::Add | Op::Sub | Op::Mul | Op::Div | Op::Ge | Op::Le | Op::Cmp => {
+                    self.binary_operation(op.clone())?
+                }
                 Op::Neg => self.negate()?,
                 Op::Print => self.print()?,
                 Op::Global(name) => self.global_variable(name.clone())?,
@@ -120,98 +120,27 @@ impl Vm {
         Ok(())
     }
 
-    fn add(&mut self) -> Result<(), VmError> {
+    fn binary_operation(&mut self, operation: Op) -> Result<(), VmError> {
         let value_a = self.stack.pop()?;
         let value_b = self.stack.pop()?;
 
-        match (value_a, value_b) {
-            (ValueType::Number(a), ValueType::Number(b)) => {
-                let result = a + b;
-                let result_value = ValueType::Number(result);
-                self.stack.push(result_value);
+        let result = match (operation, value_a, value_b) {
+            (Op::Add, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a + b),
+            (Op::Sub, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a - b),
+            (Op::Mul, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a * b),
+            (Op::Div, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a / b),
+            (Op::Ge, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a >= b),
+            (Op::Le, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a <= b),
+            (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
+            (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
+            (Op::Neg, _, _) => {
+                return Err(VmError::RuntimeError(VmRuntimeError::WrongOperation));
             }
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
             }
-        }
-        Ok(())
-    }
-
-    fn sub(&mut self) -> Result<(), VmError> {
-        let value_a = self.stack.pop()?;
-        let value_b = self.stack.pop()?;
-
-        match (value_a, value_b) {
-            (ValueType::Number(a), ValueType::Number(b)) => {
-                let result = a - b;
-                let result_value = ValueType::Number(result);
-                self.stack.push(result_value);
-            }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        }
-        Ok(())
-    }
-
-    fn mul(&mut self) -> Result<(), VmError> {
-        let value_a = self.stack.pop()?;
-        let value_b = self.stack.pop()?;
-
-        match (value_a, value_b) {
-            (ValueType::Number(a), ValueType::Number(b)) => {
-                let result = a * b;
-                let result_value = ValueType::Number(result);
-                self.stack.push(result_value);
-            }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        }
-        Ok(())
-    }
-
-    fn div(&mut self) -> Result<(), VmError> {
-        let value_a = self.stack.pop()?;
-        let value_b = self.stack.pop()?;
-
-        match (value_a, value_b) {
-            (ValueType::Number(a), ValueType::Number(b)) => {
-                let result = a / b;
-                let result_value = ValueType::Number(result);
-                self.stack.push(result_value);
-            }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        }
-        Ok(())
-    }
-
-    fn compare(&mut self) -> Result<(), VmError> {
-        let value_a = self.stack.pop()?;
-        let value_b = self.stack.pop()?;
-
-        match (value_a, value_b) {
-            (ValueType::Number(a), ValueType::Number(b)) => {
-                let result = a == b;
-                let result_value = ValueType::Bool(result);
-                self.stack.push(result_value);
-            }
-            (ValueType::Bool(a), ValueType::Bool(b)) => {
-                let result = a == b;
-                let result_value = ValueType::Bool(result);
-                self.stack.push(result_value);
-            }
-            (ValueType::Address(a), ValueType::Address(b)) => {
-                let result = a == b;
-                let result_value = ValueType::Bool(result);
-                self.stack.push(result_value);
-            }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        }
+        };
+        self.stack.push(result);
         Ok(())
     }
 

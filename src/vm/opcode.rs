@@ -16,6 +16,10 @@ pub enum Op {
     Cmp,
     /// Negates value on top of the stack.
     Neg,
+    /// Pushes true on the stack if the first value is less or equal to the second.
+    Le,
+    /// Pushes true on the stack if the first value is greater or equal to the second.
+    Ge,
     /// Prints value on top of the stack.
     Print,
     /// Initialize global variable.
@@ -36,6 +40,8 @@ impl Display for Op {
             Op::Mul => write!(f, "MUL"),
             Op::Div => write!(f, "DIV"),
             Op::Cmp => write!(f, "CMP"),
+            Op::Le => write!(f, "LE"),
+            Op::Ge => write!(f, "GE"),
             Op::Neg => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
             Op::Global(name) => write!(f, "GLB, {}", name),

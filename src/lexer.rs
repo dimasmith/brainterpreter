@@ -13,6 +13,13 @@ pub enum Token {
     LParen,
     RParen,
     Equal,
+    EqualEqual,
+    Bang,
+    BangEqual,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
     Semicolon,
     Number(f64),
     Print,
@@ -83,7 +90,34 @@ impl<'a> Lexer<'a> {
             }
             '(' => Some(Token::LParen.with_position(self.src_pos())),
             ')' => Some(Token::RParen.with_position(self.src_pos())),
-            '=' => Some(Token::Equal.with_position(self.src_pos())),
+            '=' => {
+                if self.advance_if('=') {
+                    Some(Token::EqualEqual.with_position(self.src_pos()))
+                } else {
+                    Some(Token::Equal.with_position(self.src_pos()))
+                }
+            }
+            '!' => {
+                if self.advance_if('=') {
+                    Some(Token::BangEqual.with_position(self.src_pos()))
+                } else {
+                    Some(Token::Bang.with_position(self.src_pos()))
+                }
+            }
+            '<' => {
+                if self.advance_if('=') {
+                    Some(Token::LessEqual.with_position(self.src_pos()))
+                } else {
+                    Some(Token::Less.with_position(self.src_pos()))
+                }
+            }
+            '>' => {
+                if self.advance_if('=') {
+                    Some(Token::GreaterEqual.with_position(self.src_pos()))
+                } else {
+                    Some(Token::Greater.with_position(self.src_pos()))
+                }
+            }
             ';' => Some(Token::Semicolon.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
@@ -136,6 +170,15 @@ impl<'a> Lexer<'a> {
         self.pos += 1;
         self.column += 1;
         c
+    }
+
+    fn advance_if(&mut self, c: char) -> bool {
+        if self.peek(0) == Some(c) {
+            self.advance();
+            true
+        } else {
+            false
+        }
     }
 
     fn peek(&self, offset: usize) -> Option<char> {
@@ -307,5 +350,17 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Number(42.0));
         assert_eq!(lexer.next_token(), Token::Semicolon);
         assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn comparisons() {
+        let mut lexer = Lexer::new("= == != > >= < <=");
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::EqualEqual);
+        assert_eq!(lexer.next_token(), Token::BangEqual);
+        assert_eq!(lexer.next_token(), Token::Greater);
+        assert_eq!(lexer.next_token(), Token::GreaterEqual);
+        assert_eq!(lexer.next_token(), Token::Less);
+        assert_eq!(lexer.next_token(), Token::LessEqual);
     }
 }
