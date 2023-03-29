@@ -27,6 +27,19 @@ impl Compiler {
                 self.expression(expr);
                 self.chunk.add(Op::Print);
             }
+            Statement::Declaration(name, value) => {
+                match value {
+                    Some(expr) => self.expression(expr),
+                    None => self.chunk.add(Op::Nil),
+                }
+                let variable_name = name.clone();
+                self.chunk.add(Op::Global(variable_name));
+            }
+            Statement::Assignment(name, expr) => {
+                self.expression(expr);
+                let variable_name = name.clone();
+                self.chunk.add(Op::Global(variable_name));
+            }
         }
     }
 

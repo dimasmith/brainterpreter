@@ -3,5 +3,10 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
-    interpret("(2.25 + 2.75) * 4")
+    let source = r#"
+        let a;
+        let b = 10;
+        a = 5;
+    "#;
+    interpret(source)
 }

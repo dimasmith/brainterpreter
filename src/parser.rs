@@ -56,13 +56,26 @@ where
                 let expr = self.expression(0)?;
                 Ok(Statement::Print(expr))
             }
-            _ => {
-                let expr = self.expression(0)?;
-                Ok(Statement::Expression(expr))
-            }
+            Token::Let => self.variable_declaration(),
+            Token::Identifier(name) => self.variable_assignment(&token, name),
+            _ => Err(ParsingError::Unknown(*token.source())),
         };
         self.consume(Token::Semicolon)?;
         statement
+    }
+
+    fn variable_assignment(
+        &mut self,
+        token: &SourceToken,
+        name: &String,
+    ) -> Result<Statement, ParsingError> {
+        match self.advance().kind() {
+            Token::Equal => {
+                let expr = self.expression(0)?;
+                Ok(Statement::Assignment(name.clone(), expr))
+            }
+            _ => Err(ParsingError::Unknown(*token.source())),
+        }
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
@@ -126,10 +139,34 @@ where
         }
     }
 
+    fn variable_declaration(&mut self) -> Result<Statement, ParsingError> {
+        let token = self.advance();
+        let name = match token.kind() {
+            Token::Identifier(name) => name,
+            _ => {
+                return Err(ParsingError::UnexpectedToken(
+                    token.kind().clone(),
+                    *token.source(),
+                ))
+            }
+        };
+
+        if self.advance_if(Token::Equal) {
+            let expr = self.expression(0)?;
+            Ok(Statement::Declaration(name.clone(), Some(expr)))
+        } else {
+            Ok(Statement::Declaration(name.clone(), None))
+        }
+    }
+
     fn advance(&mut self) -> SourceToken {
         self.tokens
             .next()
             .unwrap_or(SourceToken::from(Token::EndOfFile))
+    }
+
+    fn advance_if(&mut self, token: Token) -> bool {
+        self.tokens.next_if(|t| t.kind() == &token).is_some()
     }
 
     fn peek(&mut self) -> SourceToken {

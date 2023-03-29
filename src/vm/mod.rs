@@ -4,6 +4,7 @@ use crate::trace::VmStepTrace;
 use crate::value::ValueType;
 use opcode::Chunk;
 use opcode::Op;
+use std::collections::HashMap;
 use thiserror::Error;
 
 pub mod opcode;
@@ -32,6 +33,7 @@ pub struct Vm {
     ip: usize,
     chunk: Chunk,
     stack: VmStack,
+    globals: HashMap<String, ValueType>,
     trace: Option<Box<dyn VmStepTrace>>,
 }
 
@@ -99,6 +101,9 @@ impl Vm {
                     let value = ValueType::Number(*n);
                     self.stack.push(value);
                 }
+                Op::Nil => {
+                    self.stack.push(ValueType::Nil);
+                }
                 Op::Add => self.add()?,
                 Op::Sub => self.sub()?,
                 Op::Mul => self.mul()?,
@@ -106,6 +111,7 @@ impl Vm {
                 Op::Cmp => self.compare()?,
                 Op::Neg => self.negate()?,
                 Op::Print => self.print()?,
+                Op::Global(name) => self.global_variable(name.clone())?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -239,6 +245,12 @@ impl Vm {
         }
         Ok(())
     }
+
+    fn global_variable(&mut self, name: String) -> Result<(), VmError> {
+        let value = self.stack.pop()?;
+        self.globals.insert(name, value);
+        Ok(())
+    }
 }
 
 impl Default for Vm {
@@ -248,6 +260,7 @@ impl Default for Vm {
             ip: 0,
             chunk: Chunk::default(),
             stack: VmStack::default(),
+            globals: HashMap::new(),
             trace: Some(Box::new(tracer)),
         }
     }

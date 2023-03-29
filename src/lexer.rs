@@ -12,9 +12,11 @@ pub enum Token {
     Slash,
     LParen,
     RParen,
+    Equal,
     Semicolon,
     Number(f64),
     Print,
+    Let,
     Identifier(String),
     EndOfFile,
     Error,
@@ -81,6 +83,7 @@ impl<'a> Lexer<'a> {
             }
             '(' => Some(Token::LParen.with_position(self.src_pos())),
             ')' => Some(Token::RParen.with_position(self.src_pos())),
+            '=' => Some(Token::Equal.with_position(self.src_pos())),
             ';' => Some(Token::Semicolon.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
@@ -123,6 +126,7 @@ impl<'a> Lexer<'a> {
         let identifier = &self.source[self.start..self.pos];
         match identifier {
             "print" => Token::Print.with_position(self.src_pos()),
+            "let" => Token::Let.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }
@@ -291,6 +295,17 @@ mod tests {
     fn identifier() {
         let mut lexer = Lexer::new("foo");
         assert_eq!(lexer.next_token(), Token::Identifier("foo".to_string()));
+        assert_eq!(lexer.next_token(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn variable_declaration_and_assignment() {
+        let mut lexer = Lexer::new("let foo = 42;");
+        assert_eq!(lexer.next_token(), Token::Let);
+        assert_eq!(lexer.next_token(), Token::Identifier("foo".to_string()));
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::Number(42.0));
+        assert_eq!(lexer.next_token(), Token::Semicolon);
         assert_eq!(lexer.next_token(), Token::EndOfFile);
     }
 }

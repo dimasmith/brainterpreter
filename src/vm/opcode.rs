@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// Operations supported by the virtual machine
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Op {
     /// Print the top value of the stack.
     Return,
@@ -18,6 +18,10 @@ pub enum Op {
     Neg,
     /// Prints value on top of the stack.
     Print,
+    /// Initialize global variable.
+    Global(String),
+    /// Pushes nil on the stack.
+    Nil,
 }
 
 impl Display for Op {
@@ -32,6 +36,8 @@ impl Display for Op {
             Op::Cmp => write!(f, "CMP"),
             Op::Neg => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
+            Op::Global(name) => write!(f, "GLB, {}", name),
+            Op::Nil => write!(f, "NIL"),
         }
     }
 }
