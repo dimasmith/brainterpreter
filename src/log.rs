@@ -1,7 +1,7 @@
 //! Logging facilities
 use crate::trace::VmStepTrace;
 use crate::vm::opcode::Chunk;
-use crate::vm::VmStack;
+use crate::vm::vm::VmStack;
 use log::debug;
 
 #[derive(Debug, Default)]

@@ -1,7 +1,7 @@
 //! Instruments to trace virtual machine execution
 
 use crate::vm::opcode::Chunk;
-use crate::vm::VmStack;
+use crate::vm::vm::VmStack;
 use std::fmt::Debug;
 
 pub trait VmStepTrace: Debug {

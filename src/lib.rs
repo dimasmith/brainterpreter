@@ -2,7 +2,7 @@
 use crate::compiler::Compiler;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use crate::vm::Vm;
+use crate::vm::vm::Vm;
 use std::error::Error;
 
 pub mod ast;

@@ -1,7 +1,7 @@
 use l9_vm::compiler::Compiler;
 use l9_vm::lexer::Lexer;
 use l9_vm::parser::Parser;
-use l9_vm::vm::Vm;
+use l9_vm::vm::vm::Vm;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
