@@ -20,6 +20,8 @@ pub enum Op {
     Print,
     /// Initialize global variable.
     Global(String),
+    /// Load global variable value onto the stack.
+    LoadGlobal(String),
     /// Pushes nil on the stack.
     Nil,
 }
@@ -37,6 +39,7 @@ impl Display for Op {
             Op::Neg => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
             Op::Global(name) => write!(f, "GLB, {}", name),
+            Op::LoadGlobal(name) => write!(f, "LD_GL, {}", name),
             Op::Nil => write!(f, "NIL"),
         }
     }

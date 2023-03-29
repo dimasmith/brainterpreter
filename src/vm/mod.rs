@@ -9,7 +9,7 @@ use thiserror::Error;
 
 pub mod opcode;
 
-#[derive(Debug, Copy, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum VmError {
     #[error("compilation failed")]
     CompilationError,
@@ -17,7 +17,7 @@ pub enum VmError {
     RuntimeError(VmRuntimeError),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Error, Default)]
+#[derive(Debug, Clone, PartialEq, Error, Default)]
 pub enum VmRuntimeError {
     #[default]
     #[error("unknown error")]
@@ -26,6 +26,8 @@ pub enum VmRuntimeError {
     StackExhausted,
     #[error("operation is not implemented for operand type")]
     TypeMismatch,
+    #[error("variable {0} is not defined")]
+    UndefinedVariable(String),
 }
 
 #[derive(Debug)]
@@ -112,6 +114,7 @@ impl Vm {
                 Op::Neg => self.negate()?,
                 Op::Print => self.print()?,
                 Op::Global(name) => self.global_variable(name.clone())?,
+                Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -249,6 +252,14 @@ impl Vm {
     fn global_variable(&mut self, name: String) -> Result<(), VmError> {
         let value = self.stack.pop()?;
         self.globals.insert(name, value);
+        Ok(())
+    }
+
+    fn load_global_variable(&mut self, name: String) -> Result<(), VmError> {
+        let value = self.globals.get(&name).ok_or(VmError::RuntimeError(
+            VmRuntimeError::UndefinedVariable(name.clone()),
+        ))?;
+        self.stack.push(value.clone());
         Ok(())
     }
 }

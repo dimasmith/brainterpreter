@@ -56,6 +56,10 @@ impl Compiler {
                     Operation::Div => self.chunk.add(Op::Div),
                 }
             }
+            Expression::Variable(name) => {
+                let variable_name = name.clone();
+                self.chunk.add(Op::LoadGlobal(variable_name));
+            }
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs);
                 self.chunk.add(Op::Neg)

@@ -18,6 +18,7 @@ pub struct Program {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     NumberLiteral(f64),
+    Variable(String),
     BinaryOperation(Operation, Box<Expression>, Box<Expression>),
     UnaryOperation(Operation, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),

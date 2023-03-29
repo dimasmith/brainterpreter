@@ -86,6 +86,7 @@ where
                 let rhs = self.expression(5)?;
                 Expression::unary(Operation::Sub, rhs)
             }
+            Token::Identifier(name) => Expression::Variable(name.clone()),
             Token::LParen => {
                 let expr = self.expression(0)?;
                 match self.advance().kind() {
@@ -265,5 +266,20 @@ mod tests {
             parsing_error,
             Err(ParsingError::MissingOperand(_))
         ));
+    }
+
+    #[test]
+    fn print_variable() {
+        let tokens = vec![
+            Token::Print.into(),
+            Token::Identifier("x".to_string()).into(),
+            Token::Semicolon.into(),
+        ]
+        .into_iter();
+        let mut parser = Parser::new(tokens);
+
+        let ast = parser.statement().unwrap();
+
+        assert_eq!(ast, Statement::Print(Expression::Variable("x".to_string())));
     }
 }

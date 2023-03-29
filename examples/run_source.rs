@@ -4,9 +4,9 @@ use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
-        let a;
-        let b = 10;
-        a = 5;
+        let answer = 7;
+        answer = answer * 6;
+        print answer;
     "#;
     interpret(source)
 }
