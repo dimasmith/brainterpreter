@@ -46,6 +46,7 @@ impl Compiler {
     fn expression(&mut self, ast: &Expression) {
         match ast {
             Expression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
+            Expression::BooleanLiteral(b) => self.chunk.add(Op::LoadBool(*b)),
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b);
                 self.expression(a);
@@ -57,15 +58,15 @@ impl Compiler {
                     Operation::Equal => self.chunk.add(Op::Cmp),
                     Operation::NotEqual => {
                         self.chunk.add(Op::Cmp);
-                        self.chunk.add(Op::Neg)
+                        self.chunk.add(Op::Not)
                     }
                     Operation::Less => {
                         self.chunk.add(Op::Ge);
-                        self.chunk.add(Op::Neg)
+                        self.chunk.add(Op::Not)
                     }
                     Operation::Greater => {
                         self.chunk.add(Op::Le);
-                        self.chunk.add(Op::Neg)
+                        self.chunk.add(Op::Not)
                     }
                     Operation::LessOrEqual => self.chunk.add(Op::Le),
                     Operation::GreaterOrEqual => self.chunk.add(Op::Ge),
@@ -78,7 +79,12 @@ impl Compiler {
             }
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs);
-                self.chunk.add(Op::Neg)
+                self.chunk.add(Op::LoadFloat(0.0));
+                self.chunk.add(Op::Sub)
+            }
+            Expression::UnaryOperation(Operation::Not, lhs) => {
+                self.expression(lhs);
+                self.chunk.add(Op::Not)
             }
             Expression::UnaryOperation(op, _) => {
                 panic!("unsupported unary operation {:?}", op);

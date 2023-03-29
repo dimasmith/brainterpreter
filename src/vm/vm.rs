@@ -102,13 +102,17 @@ impl Vm {
                     let value = ValueType::Number(*n);
                     self.stack.push(value);
                 }
+                Op::LoadBool(b) => {
+                    let value = ValueType::Bool(*b);
+                    self.stack.push(value);
+                }
                 Op::Nil => {
                     self.stack.push(ValueType::Nil);
                 }
                 Op::Add | Op::Sub | Op::Mul | Op::Div | Op::Ge | Op::Le | Op::Cmp => {
                     self.binary_operation(op.clone())?
                 }
-                Op::Neg => self.negate()?,
+                Op::Not => self.not()?,
                 Op::Print => self.print()?,
                 Op::Global(name) => self.global_variable(name.clone())?,
                 Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
@@ -133,7 +137,7 @@ impl Vm {
             (Op::Le, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a <= b),
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
-            (Op::Neg, _, _) => {
+            (Op::Not, _, _) => {
                 return Err(VmError::RuntimeError(VmRuntimeError::WrongOperation));
             }
             _ => {
@@ -144,16 +148,14 @@ impl Vm {
         Ok(())
     }
 
-    fn negate(&mut self) -> Result<(), VmError> {
-        match self.stack.pop()? {
-            ValueType::Number(n) => {
-                let value = -n;
-                self.stack.push(ValueType::Number(value));
-            }
+    fn not(&mut self) -> Result<(), VmError> {
+        let result = match self.stack.pop()? {
+            ValueType::Bool(b) => ValueType::Bool(!b),
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
             }
-        }
+        };
+        self.stack.push(result);
         Ok(())
     }
 

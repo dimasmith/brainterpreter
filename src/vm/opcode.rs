@@ -7,6 +7,8 @@ pub enum Op {
     Return,
     /// Pushes floating-point constant on the stack.
     LoadFloat(f64),
+    /// Pushes boolean constant on the stack.
+    LoadBool(bool),
     /// Add two top elements of the stack.
     Add,
     Sub,
@@ -14,8 +16,8 @@ pub enum Op {
     Div,
     /// Compares top values of the stack. Puts comparison result on top of the stack.
     Cmp,
-    /// Negates value on top of the stack.
-    Neg,
+    /// Inverts boolean value on top of the stack.
+    Not,
     /// Pushes true on the stack if the first value is less or equal to the second.
     Le,
     /// Pushes true on the stack if the first value is greater or equal to the second.
@@ -35,6 +37,7 @@ impl Display for Op {
         match self {
             Op::Return => write!(f, "RET"),
             Op::LoadFloat(n) => write!(f, "LD_F, {}", n),
+            Op::LoadBool(b) => write!(f, "LD_B, {}", b),
             Op::Add => write!(f, "ADD"),
             Op::Sub => write!(f, "SUB"),
             Op::Mul => write!(f, "MUL"),
@@ -42,7 +45,7 @@ impl Display for Op {
             Op::Cmp => write!(f, "CMP"),
             Op::Le => write!(f, "LE"),
             Op::Ge => write!(f, "GE"),
-            Op::Neg => write!(f, "NEG"),
+            Op::Not => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
             Op::Global(name) => write!(f, "GLB, {}", name),
             Op::LoadGlobal(name) => write!(f, "LD_GL, {}", name),

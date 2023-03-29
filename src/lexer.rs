@@ -22,6 +22,8 @@ pub enum Token {
     GreaterEqual,
     Semicolon,
     Number(f64),
+    True,
+    False,
     Print,
     Let,
     Identifier(String),
@@ -161,6 +163,8 @@ impl<'a> Lexer<'a> {
         match identifier {
             "print" => Token::Print.with_position(self.src_pos()),
             "let" => Token::Let.with_position(self.src_pos()),
+            "true" => Token::True.with_position(self.src_pos()),
+            "false" => Token::False.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }

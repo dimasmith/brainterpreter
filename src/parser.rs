@@ -82,9 +82,17 @@ where
         let token = self.advance();
         let mut lhs = match token.kind() {
             Token::Number(n) => Expression::number(*n),
+            Token::True => Expression::BooleanLiteral(true),
+            Token::False => Expression::BooleanLiteral(false),
             Token::Minus => {
-                let rhs = self.expression(5)?;
+                let binding = self.prefix_binding(token.clone())?;
+                let rhs = self.expression(binding)?;
                 Expression::unary(Operation::Sub, rhs)
+            }
+            Token::Bang => {
+                let binding = self.prefix_binding(token.clone())?;
+                let rhs = self.expression(binding)?;
+                Expression::unary(Operation::Not, rhs)
             }
             Token::Identifier(name) => Expression::Variable(name.clone()),
             Token::LParen => {
@@ -147,6 +155,13 @@ where
             Operation::Less | Operation::LessOrEqual => Some((1, 2)),
             Operation::Greater | Operation::GreaterOrEqual => Some((1, 2)),
             Operation::Not => None,
+        }
+    }
+
+    fn prefix_binding(&self, token: SourceToken) -> Result<u8, ParsingError> {
+        match token.kind() {
+            Token::Minus | Token::Bang => Ok(7),
+            _ => Err(ParsingError::UnknownOperation(*token.source())),
         }
     }
 
