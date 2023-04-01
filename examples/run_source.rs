@@ -6,11 +6,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
     {
-        let a = 4;
-        if (a < 5) {
-            a = a * 2;
+        let a = 2;
+        if (a == 1) {
+            print 0;
+        } else if (a == 2) {
+            print 1;
+        } else {
+            print 2;
         }
-        print a;
     }
     "#;
     interpret(source)

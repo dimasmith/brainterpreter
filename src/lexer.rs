@@ -29,6 +29,7 @@ pub enum Token {
     False,
     Print,
     If,
+    Else,
     Let,
     Identifier(String),
     EndOfFile,
@@ -173,6 +174,7 @@ impl<'a> Lexer<'a> {
             "true" => Token::True.with_position(self.src_pos()),
             "false" => Token::False.with_position(self.src_pos()),
             "if" => Token::If.with_position(self.src_pos()),
+            "else" => Token::Else.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }

@@ -221,7 +221,11 @@ where
         let condition = self.expression(0)?;
         self.consume(Token::RParen)?;
         let then_branch = self.statement()?;
-        let else_branch = None;
+        let else_branch = if self.advance_if(Token::Else) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
         Ok(Statement::If(condition, Box::new(then_branch), else_branch))
     }
 

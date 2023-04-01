@@ -214,14 +214,23 @@ impl Compiler {
         &mut self,
         condition: &Expression,
         then: &Statement,
-        _: &Option<Box<Statement>>,
+        otherwise: &Option<Box<Statement>>,
     ) -> CompilationResult {
         self.expression(condition)?;
         let then_jump = self.chunk.add(Op::JumpIfFalse(0));
         self.statement(then)?;
-        let jump_offset = self.chunk.len() - then_jump - 1;
-        self.chunk.patch_jump(then_jump, jump_offset as i32);
 
+        if let Some(otherwise) = otherwise {
+            let else_jump = self.chunk.add(Op::Jump(0));
+            let jump_offset = self.chunk.len() - then_jump - 1;
+            self.chunk.patch_jump(then_jump, jump_offset as i32);
+            self.statement(otherwise)?;
+            let jump_offset = self.chunk.len() - else_jump - 1;
+            self.chunk.patch_jump(else_jump, jump_offset as i32);
+        } else {
+            let jump_offset = self.chunk.len() - then_jump - 1;
+            self.chunk.patch_jump(then_jump, jump_offset as i32);
+        }
         Ok(())
     }
 }
