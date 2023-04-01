@@ -12,6 +12,8 @@ pub enum Token {
     Slash,
     LParen,
     RParen,
+    LeftCurly,
+    RightCurly,
     Equal,
     EqualEqual,
     Bang,
@@ -38,6 +40,7 @@ pub struct SourceToken {
     source: Position,
 }
 
+#[derive(Debug)]
 pub struct Lexer<'a> {
     source: &'a str,
     start: usize,
@@ -92,6 +95,8 @@ impl<'a> Lexer<'a> {
             }
             '(' => Some(Token::LParen.with_position(self.src_pos())),
             ')' => Some(Token::RParen.with_position(self.src_pos())),
+            '{' => Some(Token::LeftCurly.with_position(self.src_pos())),
+            '}' => Some(Token::RightCurly.with_position(self.src_pos())),
             '=' => {
                 if self.advance_if('=') {
                     Some(Token::EqualEqual.with_position(self.src_pos()))
@@ -295,8 +300,8 @@ mod tests {
 
     #[test]
     fn float_point_literal() {
-        let mut lexer = Lexer::new("3.14");
-        assert_eq!(lexer.next_token(), Token::Number(3.14));
+        let mut lexer = Lexer::new("5.52");
+        assert_eq!(lexer.next_token(), Token::Number(5.52));
         assert_eq!(lexer.next_token(), Token::EndOfFile);
     }
     #[test]

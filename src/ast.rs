@@ -37,6 +37,7 @@ pub enum Expression {
 pub enum Statement {
     Expression(Expression),
     Print(Expression),
+    Block(Vec<Statement>),
     Declaration(String, Option<Expression>),
     Assignment(String, Expression),
 }

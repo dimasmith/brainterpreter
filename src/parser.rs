@@ -3,9 +3,11 @@
 use crate::ast::{Expression, Operation, Program, Statement};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
+use log::trace;
 use std::iter::Peekable;
 use thiserror::Error;
 
+#[derive(Debug)]
 pub struct Parser<T>
 where
     T: Iterator<Item = SourceToken>,
@@ -51,17 +53,26 @@ where
 
     fn statement(&mut self) -> Result<Statement, ParsingError> {
         let token = self.advance();
-        let statement = match token.kind() {
+        match token.kind() {
             Token::Print => {
+                trace!("Parsing print statement");
                 let expr = self.expression(0)?;
+                self.consume(Token::Semicolon)?;
                 Ok(Statement::Print(expr))
             }
-            Token::Let => self.variable_declaration(),
-            Token::Identifier(name) => self.variable_assignment(&token, name),
+            Token::LeftCurly => self.block_statement(),
+            Token::Let => {
+                let declaration = self.variable_declaration();
+                self.consume(Token::Semicolon)?;
+                declaration
+            }
+            Token::Identifier(name) => {
+                let assignment = self.variable_assignment(&token, name);
+                self.consume(Token::Semicolon)?;
+                assignment
+            }
             _ => Err(ParsingError::Unknown(*token.source())),
-        };
-        self.consume(Token::Semicolon)?;
-        statement
+        }
     }
 
     fn variable_assignment(
@@ -79,7 +90,9 @@ where
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
+        trace!("Parsing expression (min_binding: {})", min_binding);
         let token = self.advance();
+        trace!("Parsing expression (token: {:?})", token);
         let mut lhs = match token.kind() {
             Token::Number(n) => Expression::number(*n),
             Token::True => Expression::BooleanLiteral(true),
@@ -147,6 +160,22 @@ where
         Ok(lhs)
     }
 
+    fn block_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing block statement");
+        let mut statements = Vec::new();
+        loop {
+            match self.peek().kind() {
+                Token::RightCurly | Token::EndOfFile => {
+                    break;
+                }
+                _ => {}
+            }
+            statements.push(self.statement()?);
+        }
+        self.consume(Token::RightCurly)?;
+        Ok(Statement::Block(statements))
+    }
+
     fn infix_binding(&self, op: &Operation) -> Option<(u8, u8)> {
         match op {
             Operation::Add | Operation::Sub => Some((3, 4)),
@@ -166,7 +195,9 @@ where
     }
 
     fn variable_declaration(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing variable declaration");
         let token = self.advance();
+        trace!("Variable declaration token: {:?}", token);
         let name = match token.kind() {
             Token::Identifier(name) => name,
             _ => {
@@ -177,6 +208,7 @@ where
             }
         };
 
+        trace!("Assigning variable: {:?}", token);
         if self.advance_if(Token::Equal) {
             let expr = self.expression(0)?;
             Ok(Statement::Declaration(name.clone(), Some(expr)))
@@ -203,7 +235,9 @@ where
     }
 
     fn consume(&mut self, expected: Token) -> Result<(), ParsingError> {
+        trace!("Consuming token: {:?}", expected);
         let token = self.advance();
+        trace!("Consuming token: current {:?}", token);
         if *token.kind() == expected {
             Ok(())
         } else {

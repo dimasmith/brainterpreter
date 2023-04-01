@@ -28,6 +28,10 @@ pub enum Op {
     Global(String),
     /// Load global variable value onto the stack.
     LoadGlobal(String),
+    ReadLocal(usize),
+    WriteLocal(usize),
+    /// Pops value from the top of the stack.
+    Pop,
     /// Pushes nil on the stack.
     Nil,
 }
@@ -50,6 +54,9 @@ impl Display for Op {
             Op::Global(name) => write!(f, "GLB, {}", name),
             Op::LoadGlobal(name) => write!(f, "LD_GL, {}", name),
             Op::Nil => write!(f, "NIL"),
+            Op::Pop => write!(f, "POP"),
+            Op::ReadLocal(idx) => write!(f, "LD_L, {}", idx),
+            Op::WriteLocal(idx) => write!(f, "ST_L, {}", idx),
         }
     }
 }

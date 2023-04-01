@@ -67,6 +67,14 @@ impl VmStack {
     pub fn push(&mut self, value: ValueType) {
         self.stack.push(value);
     }
+
+    fn set(&mut self, offset: usize, mut value: ValueType) -> Result<(), VmError> {
+        self.stack
+            .get_mut(offset)
+            .replace(&mut value)
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
+        Ok(())
+    }
 }
 
 impl Default for VmStack {
@@ -106,6 +114,9 @@ impl Vm {
                     let value = ValueType::Bool(*b);
                     self.stack.push(value);
                 }
+                Op::Pop => {
+                    self.stack.pop()?;
+                }
                 Op::Nil => {
                     self.stack.push(ValueType::Nil);
                 }
@@ -116,6 +127,8 @@ impl Vm {
                 Op::Print => self.print()?,
                 Op::Global(name) => self.global_variable(name.clone())?,
                 Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
+                Op::WriteLocal(offset) => self.write_local_variable(*offset)?,
+                Op::ReadLocal(offset) => self.read_local_variable(*offset)?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -186,6 +199,23 @@ impl Vm {
     fn load_global_variable(&mut self, name: String) -> Result<(), VmError> {
         let value = self.globals.get(&name).ok_or(VmError::RuntimeError(
             VmRuntimeError::UndefinedVariable(name.clone()),
+        ))?;
+        self.stack.push(value.clone());
+        Ok(())
+    }
+
+    fn write_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
+        let value = self
+            .stack
+            .peek(0)
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
+        self.stack.set(offset, value.clone())?;
+        Ok(())
+    }
+
+    fn read_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
+        let value = self.stack.stack.get(offset).ok_or(VmError::RuntimeError(
+            VmRuntimeError::UndefinedVariable(offset.to_string()),
         ))?;
         self.stack.push(value.clone());
         Ok(())
