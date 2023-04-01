@@ -6,8 +6,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let source = r#"
     let a = 5;
     {
-        let a = 10;        
-        let a = 15;
+        let a = a;
         print a;
     }
     print a;

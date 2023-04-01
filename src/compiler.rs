@@ -3,7 +3,7 @@ use crate::ast::{Expression, Operation, Program, Statement};
 use crate::vm::opcode::{Chunk, Op};
 use thiserror::Error;
 
-type CompilatonResult = Result<(), CompileError>;
+type CompilationResult = Result<(), CompileError>;
 
 #[derive(Debug, Clone, Default)]
 pub struct Compiler {
@@ -24,6 +24,7 @@ pub enum CompileError {
 struct Local {
     name: String,
     depth: usize,
+    initialized: bool,
 }
 
 /// Contains local variables
@@ -41,7 +42,7 @@ impl Compiler {
         Ok(self.chunk.clone())
     }
 
-    fn statement(&mut self, ast: &Statement) -> CompilatonResult {
+    fn statement(&mut self, ast: &Statement) -> CompilationResult {
         match ast {
             Statement::Expression(expr) => self.expression(expr),
             Statement::Print(expr) => {
@@ -67,7 +68,11 @@ impl Compiler {
         self.locals.resolve_local(name)
     }
 
-    fn variable_declaration(&mut self, name: &str, value: &Option<Expression>) -> CompilatonResult {
+    fn variable_declaration(
+        &mut self,
+        name: &str,
+        value: &Option<Expression>,
+    ) -> CompilationResult {
         if self.locals.depth > 0 {
             if self.locals.check_local(name) {
                 return Err(CompileError::VariableAlreadyDeclared(name.to_string()));
@@ -78,6 +83,7 @@ impl Compiler {
             } else {
                 self.chunk.add(Op::Nil);
             }
+            self.locals.initialize_last_local();
             self.chunk.add(Op::WriteLocal(self.locals.locals.len() - 1));
             return Ok(());
         }
@@ -90,7 +96,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn expression(&mut self, ast: &Expression) -> CompilatonResult {
+    fn expression(&mut self, ast: &Expression) -> CompilationResult {
         match ast {
             Expression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
             Expression::BooleanLiteral(b) => self.chunk.add(Op::LoadBool(*b)),
@@ -150,7 +156,7 @@ impl Compiler {
         self.chunk.add(Op::LoadGlobal(name.to_string()));
     }
 
-    fn block(&mut self, statements: &Vec<Statement>) -> CompilatonResult {
+    fn block(&mut self, statements: &Vec<Statement>) -> CompilationResult {
         self.begin_scope();
         for statement in statements {
             self.statement(statement)?;
@@ -175,7 +181,7 @@ impl Locals {
     /// Find the index of a local variable by name.
     fn resolve_local(&self, name: &str) -> Option<usize> {
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if local.name == *name {
+            if local.name == *name && local.initialized {
                 return Some(i);
             }
         }
@@ -197,6 +203,7 @@ impl Locals {
         let local = Local {
             name: name.to_string(),
             depth: self.depth,
+            initialized: false,
         };
         self.locals.push(local.clone());
         local
@@ -218,6 +225,10 @@ impl Locals {
         }
         self.depth -= 1;
         locals_in_scope
+    }
+
+    fn initialize_last_local(&mut self) {
+        self.locals.last_mut().unwrap().initialized = true;
     }
 }
 
@@ -282,6 +293,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn shadow_initialization() {
+        let global = Statement::Declaration("a".to_string(), Some(Expression::number(1.0)));
+        let local =
+            Statement::Declaration("a".to_string(), Some(Expression::Variable("a".to_string())));
+        let block = Statement::Block(vec![local]);
+        let mut compiler = Compiler::default();
+
+        let chunk = compiler
+            .compile_program(Program::new(vec![global, block]))
+            .unwrap();
+        let opcodes: Vec<Op> = chunk.iter().cloned().collect();
+
+        assert_eq!(
+            opcodes,
+            vec![
+                Op::LoadFloat(1.0),
+                Op::Global("a".to_string()),
+                Op::LoadGlobal("a".to_string()),
+                Op::WriteLocal(0),
+                Op::Pop,
+            ]
+        );
+    }
+
     mod locals {
         use super::*;
 
@@ -331,31 +367,35 @@ mod tests {
         #[test]
         fn resolve_locals() {
             let mut locals = Locals::default();
-            locals.locals.push(Local {
-                name: "a".to_string(),
-                depth: 1,
-            });
-            locals.locals.push(Local {
-                name: "b".to_string(),
-                depth: 2,
-            });
+            locals.begin_scope();
+            locals.add_local("a");
+            locals.initialize_last_local();
+            locals.begin_scope();
+            locals.add_local("b");
+            locals.initialize_last_local();
 
             assert_eq!(locals.resolve_local("a"), Some(0));
             assert_eq!(locals.resolve_local("b"), Some(1));
             assert_eq!(locals.resolve_local("c"), None);
+
+            locals.end_scope();
+            assert_eq!(
+                locals.resolve_local("a"),
+                Some(0),
+                "a should still be in scope"
+            );
+            assert_eq!(locals.resolve_local("b"), None, "b should not be in scope");
         }
 
         #[test]
         fn check_local_on_depth_level() {
             let mut locals = Locals::default();
-            locals.locals.push(Local {
-                name: "a".to_string(),
-                depth: 1,
-            });
-            locals.locals.push(Local {
-                name: "b".to_string(),
-                depth: 2,
-            });
+            locals.begin_scope();
+            locals.add_local("a");
+            locals.initialize_last_local();
+            locals.begin_scope();
+            locals.add_local("b");
+            locals.initialize_last_local();
 
             assert!(
                 locals.check_local_on_depth("a", 1),
