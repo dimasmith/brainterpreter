@@ -91,6 +91,10 @@ impl Chunk {
     pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
+
+    pub fn iter(&self) -> std::slice::Iter<Op> {
+        self.ops.iter()
+    }
 }
 
 impl Display for Chunk {

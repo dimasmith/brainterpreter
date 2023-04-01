@@ -9,9 +9,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let source = "print 12 + 4;";
     let lexer = Lexer::new(source);
     let mut parser = Parser::new(lexer);
-    let ast = parser.parse_program()?;
+    let program = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let chunk = compiler.compile_program(ast);
+    let chunk = compiler.compile_program(program)?;
     let mut vm = Vm::default();
     vm.interpret(chunk)?;
 

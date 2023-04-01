@@ -41,7 +41,7 @@ where
 
     pub fn parse_program(&mut self) -> Result<Program, ParsingError> {
         let mut program = Program::default();
-        while !self.tokens.peek().is_none() {
+        while self.tokens.peek().is_some() {
             program.add_statement(self.statement()?);
         }
         Ok(program)
@@ -78,12 +78,12 @@ where
     fn variable_assignment(
         &mut self,
         token: &SourceToken,
-        name: &String,
+        name: &str,
     ) -> Result<Statement, ParsingError> {
         match self.advance().kind() {
             Token::Equal => {
                 let expr = self.expression(0)?;
-                Ok(Statement::Assignment(name.clone(), expr))
+                Ok(Statement::Assignment(name.to_string(), expr))
             }
             _ => Err(ParsingError::Unknown(*token.source())),
         }
@@ -115,12 +115,7 @@ where
                     _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
                 }
             }
-            t => {
-                return Err(ParsingError::UnexpectedToken(
-                    t.clone(),
-                    token.source().clone(),
-                ))
-            }
+            t => return Err(ParsingError::UnexpectedToken(t.clone(), *token.source())),
         };
 
         loop {
@@ -243,7 +238,7 @@ where
         } else {
             Err(ParsingError::UnexpectedToken(
                 token.kind().clone(),
-                token.source().clone(),
+                *token.source(),
             ))
         }
     }
