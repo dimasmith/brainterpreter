@@ -51,12 +51,7 @@ impl Compiler {
                 Ok(())
             }
             Statement::Declaration(name, value) => self.variable_declaration(name, value),
-            Statement::Assignment(name, expr) => {
-                self.expression(expr)?;
-                let variable_name = name.clone();
-                self.chunk.add(Op::Global(variable_name));
-                Ok(())
-            }
+            Statement::Assignment(name, expr) => self.variable_assignment(name, expr),
             Statement::Block(statements) => {
                 self.block(statements)?;
                 Ok(())
@@ -64,8 +59,22 @@ impl Compiler {
         }
     }
 
-    fn resolve_local(&self, name: &str) -> Option<usize> {
-        self.locals.resolve_local(name)
+    fn variable_assignment(
+        &mut self,
+        name: &String,
+        expr: &Expression,
+    ) -> Result<(), CompileError> {
+        if self.locals.depth > 0 {
+            if let Some(local) = self.locals.resolve_local(name) {
+                self.expression(expr)?;
+                self.chunk.add(Op::WriteLocal(local));
+                return Ok(());
+            }
+        }
+        self.expression(expr)?;
+        let variable_name = name.clone();
+        self.chunk.add(Op::Global(variable_name));
+        Ok(())
     }
 
     fn variable_declaration(
@@ -149,7 +158,7 @@ impl Compiler {
     }
 
     fn load_variable(&mut self, name: &str) {
-        if let Some(local) = self.resolve_local(name) {
+        if let Some(local) = self.locals.resolve_local(name) {
             self.chunk.add(Op::ReadLocal(local));
             return;
         }

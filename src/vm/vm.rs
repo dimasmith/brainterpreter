@@ -56,6 +56,10 @@ impl VmStack {
         self.stack.get(offset)
     }
 
+    fn last(&self) -> Option<&ValueType> {
+        self.stack.last()
+    }
+
     pub fn len(&self) -> usize {
         self.stack.len()
     }
@@ -68,12 +72,13 @@ impl VmStack {
         self.stack.push(value);
     }
 
-    fn set(&mut self, offset: usize, mut value: ValueType) -> Result<(), VmError> {
-        self.stack
-            .get_mut(offset)
-            .replace(&mut value)
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
-        Ok(())
+    fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmError> {
+        if let Some(v) = self.stack.get_mut(offset) {
+            *v = value;
+            Ok(())
+        } else {
+            Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+        }
     }
 }
 
@@ -207,7 +212,7 @@ impl Vm {
     fn write_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
         let value = self
             .stack
-            .peek(0)
+            .last()
             .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
         self.stack.set(offset, value.clone())?;
         Ok(())
@@ -246,5 +251,20 @@ mod tests {
         let mut vm = Vm::default();
         let result = vm.interpret(program);
         assert!(result.is_ok());
+    }
+
+    mod stack {
+        use super::*;
+
+        #[test]
+        fn set_value_by_offset() {
+            let mut stack = VmStack::default();
+            stack.push(ValueType::Number(1.0));
+            stack.push(ValueType::Number(2.0));
+            stack.set(0, ValueType::Number(3.0)).unwrap();
+            stack.set(1, ValueType::Number(4.0)).unwrap();
+            assert_eq!(stack.stack[0], ValueType::Number(3.0));
+            assert_eq!(stack.stack[1], ValueType::Number(4.0));
+        }
     }
 }
