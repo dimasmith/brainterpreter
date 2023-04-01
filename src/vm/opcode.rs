@@ -6,9 +6,9 @@ pub enum Op {
     /// Print the top value of the stack.
     Return,
     /// Pushes floating-point constant on the stack.
-    LoadFloat(f64),
+    ConstFloat(f64),
     /// Pushes boolean constant on the stack.
-    LoadBool(bool),
+    ConstBool(bool),
     /// Add two top elements of the stack.
     Add,
     Sub,
@@ -24,12 +24,14 @@ pub enum Op {
     Ge,
     /// Prints value on top of the stack.
     Print,
-    /// Initialize global variable.
-    Global(String),
+    /// Takes the value from the top of the stack and stores it in the global variable.
+    StoreGlobal(String),
     /// Load global variable value onto the stack.
     LoadGlobal(String),
-    ReadLocal(usize),
-    WriteLocal(usize),
+    /// Takes the value from the top of the stack and stores it in the local variable.
+    StoreLocal(usize),
+    /// Load local variable value onto the stack.
+    LoadLocal(usize),
     /// Pops value from the top of the stack.
     Pop,
     /// Pushes nil on the stack.
@@ -39,9 +41,9 @@ pub enum Op {
 impl Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Return => write!(f, "RET"),
-            Op::LoadFloat(n) => write!(f, "LD_F, {}", n),
-            Op::LoadBool(b) => write!(f, "LD_B, {}", b),
+            Op::ConstFloat(n) => write!(f, "CONST_F, {}", n),
+            Op::ConstBool(b) => write!(f, "CONST_B, {}", b),
+            Op::Nil => write!(f, "CONST_NIL"),
             Op::Add => write!(f, "ADD"),
             Op::Sub => write!(f, "SUB"),
             Op::Mul => write!(f, "MUL"),
@@ -51,12 +53,12 @@ impl Display for Op {
             Op::Ge => write!(f, "GE"),
             Op::Not => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
-            Op::Global(name) => write!(f, "GLB, {}", name),
-            Op::LoadGlobal(name) => write!(f, "LD_GL, {}", name),
-            Op::Nil => write!(f, "NIL"),
+            Op::LoadGlobal(name) => write!(f, "LD_G {}", name),
+            Op::StoreGlobal(name) => write!(f, "ST_G {}", name),
+            Op::LoadLocal(idx) => write!(f, "LD_L {}", idx),
+            Op::StoreLocal(idx) => write!(f, "ST_L {}", idx),
             Op::Pop => write!(f, "POP"),
-            Op::ReadLocal(idx) => write!(f, "LD_L, {}", idx),
-            Op::WriteLocal(idx) => write!(f, "ST_L, {}", idx),
+            Op::Return => write!(f, "RET"),
         }
     }
 }
@@ -108,14 +110,13 @@ impl Display for Chunk {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
     fn build_program() {
         let chunk = Chunk::default()
-            .push(Op::LoadFloat(3.0))
-            .push(Op::LoadFloat(4.0))
+            .push(Op::ConstFloat(3.0))
+            .push(Op::ConstFloat(4.0))
             .push(Op::Cmp)
             .push(Op::Return);
 

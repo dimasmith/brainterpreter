@@ -1,7 +1,8 @@
 //! Compiles AST into virtual machine instructions
+use thiserror::Error;
+
 use crate::ast::{Expression, Operation, Program, Statement};
 use crate::vm::opcode::{Chunk, Op};
-use thiserror::Error;
 
 type CompilationResult = Result<(), CompileError>;
 
@@ -67,13 +68,14 @@ impl Compiler {
         if self.locals.depth > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.expression(expr)?;
-                self.chunk.add(Op::WriteLocal(local));
+                self.chunk.add(Op::StoreLocal(local));
+                self.chunk.add(Op::Pop); // removing hanging expression result from stack
                 return Ok(());
             }
         }
         self.expression(expr)?;
         let variable_name = name.clone();
-        self.chunk.add(Op::Global(variable_name));
+        self.chunk.add(Op::StoreGlobal(variable_name));
         Ok(())
     }
 
@@ -93,7 +95,7 @@ impl Compiler {
                 self.chunk.add(Op::Nil);
             }
             self.locals.initialize_last_local();
-            self.chunk.add(Op::WriteLocal(self.locals.locals.len() - 1));
+            self.chunk.add(Op::StoreLocal(self.locals.locals.len() - 1));
             return Ok(());
         }
 
@@ -101,14 +103,14 @@ impl Compiler {
             Some(expr) => self.expression(expr)?,
             None => self.chunk.add(Op::Nil),
         }
-        self.chunk.add(Op::Global(name.to_string()));
+        self.chunk.add(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
 
     fn expression(&mut self, ast: &Expression) -> CompilationResult {
         match ast {
-            Expression::NumberLiteral(n) => self.chunk.add(Op::LoadFloat(*n)),
-            Expression::BooleanLiteral(b) => self.chunk.add(Op::LoadBool(*b)),
+            Expression::NumberLiteral(n) => self.chunk.add(Op::ConstFloat(*n)),
+            Expression::BooleanLiteral(b) => self.chunk.add(Op::ConstBool(*b)),
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
@@ -138,7 +140,7 @@ impl Compiler {
             Expression::Variable(name) => self.load_variable(name),
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs)?;
-                self.chunk.add(Op::LoadFloat(0.0));
+                self.chunk.add(Op::ConstFloat(0.0));
                 self.chunk.add(Op::Sub)
             }
             Expression::UnaryOperation(Operation::Not, lhs) => {
@@ -159,7 +161,7 @@ impl Compiler {
 
     fn load_variable(&mut self, name: &str) {
         if let Some(local) = self.locals.resolve_local(name) {
-            self.chunk.add(Op::ReadLocal(local));
+            self.chunk.add(Op::LoadLocal(local));
             return;
         }
         self.chunk.add(Op::LoadGlobal(name.to_string()));
@@ -243,7 +245,6 @@ impl Locals {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -255,7 +256,7 @@ mod tests {
             .compile_program(Program::new(vec![number]))
             .unwrap();
 
-        assert_eq!(chunk.op(0), Some(&Op::LoadFloat(42.0)));
+        assert_eq!(chunk.op(0), Some(&Op::ConstFloat(42.0)));
     }
 
     #[test]
@@ -272,8 +273,8 @@ mod tests {
             .compile_program(Program::new(vec![add_statement]))
             .unwrap();
 
-        assert_eq!(chunk.op(0), Some(&Op::LoadFloat(8.5)));
-        assert_eq!(chunk.op(1), Some(&Op::LoadFloat(3.0)));
+        assert_eq!(chunk.op(0), Some(&Op::ConstFloat(8.5)));
+        assert_eq!(chunk.op(1), Some(&Op::ConstFloat(3.0)));
         assert_eq!(chunk.op(2), Some(&Op::Add));
     }
 
@@ -292,10 +293,10 @@ mod tests {
         assert_eq!(
             opcodes,
             vec![
-                Op::LoadFloat(1.0),
-                Op::WriteLocal(0),
-                Op::LoadFloat(2.0),
-                Op::WriteLocal(1),
+                Op::ConstFloat(1.0),
+                Op::StoreLocal(0),
+                Op::ConstFloat(2.0),
+                Op::StoreLocal(1),
                 Op::Pop,
                 Op::Pop,
             ]
@@ -318,10 +319,10 @@ mod tests {
         assert_eq!(
             opcodes,
             vec![
-                Op::LoadFloat(1.0),
-                Op::Global("a".to_string()),
+                Op::ConstFloat(1.0),
+                Op::StoreGlobal("a".to_string()),
                 Op::LoadGlobal("a".to_string()),
-                Op::WriteLocal(0),
+                Op::StoreLocal(0),
                 Op::Pop,
             ]
         );

@@ -1,16 +1,16 @@
-use l9_vm::interpret;
 use std::error::Error;
+
+use l9_vm::interpret;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
-    let a = 10;
     {
-        let a = a;
-        a = a + 1;
+        let a = 1;  
+        let b = 2;
+        a = a + b;
         print a;
     }
-    print a;
     "#;
     interpret(source)
 }

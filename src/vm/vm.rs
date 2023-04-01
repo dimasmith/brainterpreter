@@ -1,10 +1,12 @@
 //! Virtual machine to support running l9 toy programming language
+use std::collections::HashMap;
+
+use thiserror::Error;
+
 use crate::log::LoggingTracer;
 use crate::trace::VmStepTrace;
 use crate::value::ValueType;
 use crate::vm::opcode::{Chunk, Op};
-use std::collections::HashMap;
-use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum VmError {
@@ -111,11 +113,11 @@ impl Vm {
                         println!("None");
                     }
                 }
-                Op::LoadFloat(n) => {
+                Op::ConstFloat(n) => {
                     let value = ValueType::Number(*n);
                     self.stack.push(value);
                 }
-                Op::LoadBool(b) => {
+                Op::ConstBool(b) => {
                     let value = ValueType::Bool(*b);
                     self.stack.push(value);
                 }
@@ -130,10 +132,10 @@ impl Vm {
                 }
                 Op::Not => self.not()?,
                 Op::Print => self.print()?,
-                Op::Global(name) => self.global_variable(name.clone())?,
+                Op::StoreGlobal(name) => self.global_variable(name.clone())?,
                 Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
-                Op::WriteLocal(offset) => self.write_local_variable(*offset)?,
-                Op::ReadLocal(offset) => self.read_local_variable(*offset)?,
+                Op::StoreLocal(offset) => self.write_local_variable(*offset)?,
+                Op::LoadLocal(offset) => self.read_local_variable(*offset)?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -242,8 +244,9 @@ impl Default for Vm {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::vm::opcode::Op;
+
+    use super::*;
 
     #[test]
     fn interpret_correct_program() {
