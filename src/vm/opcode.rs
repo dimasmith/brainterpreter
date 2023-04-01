@@ -36,6 +36,10 @@ pub enum Op {
     Pop,
     /// Pushes nil on the stack.
     Nil,
+    /// Unconditional jump to the given offset.
+    Jump(i32),
+    /// Jump to the given offset if the top value of the stack is false.
+    JumpIfFalse(i32),
 }
 
 impl Display for Op {
@@ -59,6 +63,8 @@ impl Display for Op {
             Op::StoreLocal(idx) => write!(f, "ST_L {}", idx),
             Op::Pop => write!(f, "POP"),
             Op::Return => write!(f, "RET"),
+            Op::Jump(offset) => write!(f, "JMP {}", offset),
+            Op::JumpIfFalse(offset) => write!(f, "JZ {}", offset),
         }
     }
 }
@@ -78,8 +84,9 @@ impl Chunk {
         self
     }
 
-    pub fn add(&mut self, op: Op) {
+    pub fn add(&mut self, op: Op) -> usize {
         self.ops.push(op);
+        self.ops.len() - 1
     }
 
     pub fn op(&self, idx: usize) -> Option<&Op> {
@@ -96,6 +103,16 @@ impl Chunk {
 
     pub fn iter(&self) -> std::slice::Iter<Op> {
         self.ops.iter()
+    }
+
+    pub fn patch_jump(&mut self, address: usize, offset: i32) {
+        if let Op::JumpIfFalse(_) = self.ops[address] {
+            self.ops[address] = Op::JumpIfFalse(offset);
+        } else if let Op::Jump(_) = self.ops[address] {
+            self.ops[address] = Op::Jump(offset);
+        } else {
+            panic!("Invalid jump address");
+        }
     }
 }
 
@@ -121,5 +138,31 @@ mod tests {
             .push(Op::Return);
 
         assert_eq!(chunk.len(), 4);
+    }
+
+    #[test]
+    fn patch_conditional_jump() {
+        let mut chunk = Chunk::default()
+            .push(Op::ConstFloat(3.0))
+            .push(Op::ConstFloat(4.0))
+            .push(Op::Cmp);
+        let jump_address = chunk.add(Op::JumpIfFalse(0));
+
+        chunk.patch_jump(jump_address, -2);
+
+        assert_eq!(chunk.op(jump_address), Some(&Op::JumpIfFalse(-2)));
+    }
+
+    #[test]
+    fn patch_unconditional_jump() {
+        let mut chunk = Chunk::default()
+            .push(Op::ConstFloat(3.0))
+            .push(Op::ConstFloat(4.0))
+            .push(Op::Cmp);
+        let jump_address = chunk.add(Op::Jump(0));
+
+        chunk.patch_jump(jump_address, -1);
+
+        assert_eq!(chunk.op(jump_address), Some(&Op::Jump(-1)));
     }
 }

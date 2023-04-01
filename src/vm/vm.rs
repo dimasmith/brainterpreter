@@ -29,6 +29,8 @@ pub enum VmRuntimeError {
     UndefinedVariable(String),
     #[error("wrong operation")]
     WrongOperation,
+    #[error("illegal jump from address {0} with offset {1}")]
+    IllegalJump(usize, isize),
 }
 
 #[derive(Debug)]
@@ -136,6 +138,8 @@ impl Vm {
                 Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
                 Op::StoreLocal(offset) => self.write_local_variable(*offset)?,
                 Op::LoadLocal(offset) => self.read_local_variable(*offset)?,
+                Op::Jump(offset) => self.jump(*offset)?,
+                Op::JumpIfFalse(offset) => self.jump_if_false(*offset)?,
             }
             if let Some(trace) = &self.trace {
                 trace.trace_after(self.ip, &self.chunk, &self.stack);
@@ -225,6 +229,30 @@ impl Vm {
             VmRuntimeError::UndefinedVariable(offset.to_string()),
         ))?;
         self.stack.push(value.clone());
+        Ok(())
+    }
+
+    fn jump(&mut self, offset: i32) -> Result<(), VmError> {
+        let ip = self
+            .ip
+            .checked_add_signed(offset as isize)
+            .ok_or(VmError::RuntimeError(VmRuntimeError::IllegalJump(
+                self.ip,
+                offset as isize,
+            )))?;
+        self.ip = ip;
+        Ok(())
+    }
+
+    fn jump_if_false(&mut self, offset: i32) -> Result<(), VmError> {
+        let value = self.stack.pop()?;
+        if let ValueType::Bool(b) = value {
+            if !b {
+                self.jump(offset)?;
+            }
+        } else {
+            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+        }
         Ok(())
     }
 }

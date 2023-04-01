@@ -40,6 +40,7 @@ pub enum Statement {
     Block(Vec<Statement>),
     Declaration(String, Option<Expression>),
     Assignment(String, Expression),
+    If(Expression, Box<Statement>, Option<Box<Statement>>),
 }
 
 impl Program {

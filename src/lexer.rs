@@ -1,7 +1,8 @@
 //! Lexer for the l9 source code
 
-use crate::source::Position;
 use log::error;
+
+use crate::source::Position;
 
 /// Lexical token of the l9 language
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +28,7 @@ pub enum Token {
     True,
     False,
     Print,
+    If,
     Let,
     Identifier(String),
     EndOfFile,
@@ -170,6 +172,7 @@ impl<'a> Lexer<'a> {
             "let" => Token::Let.with_position(self.src_pos()),
             "true" => Token::True.with_position(self.src_pos()),
             "false" => Token::False.with_position(self.src_pos()),
+            "if" => Token::If.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }
@@ -274,7 +277,6 @@ impl Token {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

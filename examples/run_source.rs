@@ -6,9 +6,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
     {
-        let a = 1;  
-        let b = 2;
-        a = a + b;
+        let a = 4;
+        if (a < 5) {
+            a = a * 2;
+        }
         print a;
     }
     "#;

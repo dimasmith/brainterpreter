@@ -57,6 +57,9 @@ impl Compiler {
                 self.block(statements)?;
                 Ok(())
             }
+            Statement::If(condition, then, otherwise) => {
+                self.if_statement(condition, then, otherwise)
+            }
         }
     }
 
@@ -101,7 +104,9 @@ impl Compiler {
 
         match value {
             Some(expr) => self.expression(expr)?,
-            None => self.chunk.add(Op::Nil),
+            None => {
+                self.chunk.add(Op::Nil);
+            }
         }
         self.chunk.add(Op::StoreGlobal(name.to_string()));
         Ok(())
@@ -109,31 +114,49 @@ impl Compiler {
 
     fn expression(&mut self, ast: &Expression) -> CompilationResult {
         match ast {
-            Expression::NumberLiteral(n) => self.chunk.add(Op::ConstFloat(*n)),
-            Expression::BooleanLiteral(b) => self.chunk.add(Op::ConstBool(*b)),
+            Expression::NumberLiteral(n) => {
+                self.chunk.add(Op::ConstFloat(*n));
+            }
+            Expression::BooleanLiteral(b) => {
+                self.chunk.add(Op::ConstBool(*b));
+            }
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
                 match op {
-                    Operation::Add => self.chunk.add(Op::Add),
-                    Operation::Sub => self.chunk.add(Op::Sub),
-                    Operation::Mul => self.chunk.add(Op::Mul),
-                    Operation::Div => self.chunk.add(Op::Div),
-                    Operation::Equal => self.chunk.add(Op::Cmp),
+                    Operation::Add => {
+                        self.chunk.add(Op::Add);
+                    }
+                    Operation::Sub => {
+                        self.chunk.add(Op::Sub);
+                    }
+                    Operation::Mul => {
+                        self.chunk.add(Op::Mul);
+                    }
+                    Operation::Div => {
+                        self.chunk.add(Op::Div);
+                    }
+                    Operation::Equal => {
+                        self.chunk.add(Op::Cmp);
+                    }
                     Operation::NotEqual => {
                         self.chunk.add(Op::Cmp);
-                        self.chunk.add(Op::Not)
+                        self.chunk.add(Op::Not);
                     }
                     Operation::Less => {
                         self.chunk.add(Op::Ge);
-                        self.chunk.add(Op::Not)
+                        self.chunk.add(Op::Not);
                     }
                     Operation::Greater => {
                         self.chunk.add(Op::Le);
-                        self.chunk.add(Op::Not)
+                        self.chunk.add(Op::Not);
                     }
-                    Operation::LessOrEqual => self.chunk.add(Op::Le),
-                    Operation::GreaterOrEqual => self.chunk.add(Op::Ge),
+                    Operation::LessOrEqual => {
+                        self.chunk.add(Op::Le);
+                    }
+                    Operation::GreaterOrEqual => {
+                        self.chunk.add(Op::Ge);
+                    }
                     Operation::Not => panic!("not is not a binary operation"),
                 }
             }
@@ -141,11 +164,11 @@ impl Compiler {
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add(Op::ConstFloat(0.0));
-                self.chunk.add(Op::Sub)
+                self.chunk.add(Op::Sub);
             }
             Expression::UnaryOperation(Operation::Not, lhs) => {
                 self.expression(lhs)?;
-                self.chunk.add(Op::Not)
+                self.chunk.add(Op::Not);
             }
             Expression::UnaryOperation(op, _) => {
                 panic!("unsupported unary operation {:?}", op);
@@ -185,6 +208,21 @@ impl Compiler {
         for _ in 0..locals_in_scope {
             self.chunk.add(Op::Pop);
         }
+    }
+
+    fn if_statement(
+        &mut self,
+        condition: &Expression,
+        then: &Statement,
+        _: &Option<Box<Statement>>,
+    ) -> CompilationResult {
+        self.expression(condition)?;
+        let then_jump = self.chunk.add(Op::JumpIfFalse(0));
+        self.statement(then)?;
+        let jump_offset = self.chunk.len() - then_jump - 1;
+        self.chunk.patch_jump(then_jump, jump_offset as i32);
+
+        Ok(())
     }
 }
 

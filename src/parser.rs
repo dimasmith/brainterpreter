@@ -1,11 +1,13 @@
 //! Parser for the l9 interpreter
 
+use std::iter::Peekable;
+
+use log::trace;
+use thiserror::Error;
+
 use crate::ast::{Expression, Operation, Program, Statement};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
-use log::trace;
-use std::iter::Peekable;
-use thiserror::Error;
 
 #[derive(Debug)]
 pub struct Parser<T>
@@ -66,6 +68,7 @@ where
                 self.consume(Token::Semicolon)?;
                 declaration
             }
+            Token::If => self.if_statement(),
             Token::Identifier(name) => {
                 let assignment = self.variable_assignment(&token, name);
                 self.consume(Token::Semicolon)?;
@@ -212,6 +215,16 @@ where
         }
     }
 
+    fn if_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing if statement");
+        self.consume(Token::LParen)?;
+        let condition = self.expression(0)?;
+        self.consume(Token::RParen)?;
+        let then_branch = self.statement()?;
+        let else_branch = None;
+        Ok(Statement::If(condition, Box::new(then_branch), else_branch))
+    }
+
     fn advance(&mut self) -> SourceToken {
         self.tokens
             .next()
@@ -246,8 +259,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::ast::Operation;
+
+    use super::*;
 
     #[test]
     fn number_literal() {
