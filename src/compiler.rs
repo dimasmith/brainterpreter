@@ -222,13 +222,13 @@ impl Compiler {
 
         if let Some(otherwise) = otherwise {
             let else_jump = self.chunk.add(Op::Jump(0));
-            let jump_offset = self.chunk.len() - then_jump - 1;
+            let jump_offset = self.chunk.last_index() - then_jump;
             self.chunk.patch_jump(then_jump, jump_offset as i32);
             self.statement(otherwise)?;
-            let jump_offset = self.chunk.len() - else_jump - 1;
+            let jump_offset = self.chunk.last_index() - else_jump;
             self.chunk.patch_jump(else_jump, jump_offset as i32);
         } else {
-            let jump_offset = self.chunk.len() - then_jump - 1;
+            let jump_offset = self.chunk.last_index() - then_jump;
             self.chunk.patch_jump(then_jump, jump_offset as i32);
         }
         Ok(())

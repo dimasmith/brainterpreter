@@ -105,6 +105,10 @@ impl Chunk {
         self.ops.iter()
     }
 
+    pub fn last_index(&self) -> usize {
+        self.ops.len() - 1
+    }
+
     pub fn patch_jump(&mut self, address: usize, offset: i32) {
         if let Op::JumpIfFalse(_) = self.ops[address] {
             self.ops[address] = Op::JumpIfFalse(offset);
