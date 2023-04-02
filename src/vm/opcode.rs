@@ -118,6 +118,17 @@ impl Chunk {
             panic!("Invalid jump address");
         }
     }
+
+    /// Directs jump instruction at jump_address to the target_address.
+    pub fn patch_jump_to(&mut self, jump_address: usize, target_address: usize) {
+        let offset = target_address as i32 - jump_address as i32;
+        self.patch_jump(jump_address, offset);
+    }
+
+    /// Directs jump instruction at jump_address to the last instruction.
+    pub fn patch_jump_to_last(&mut self, jump_address: usize) {
+        self.patch_jump_to(jump_address, self.last_index());
+    }
 }
 
 impl Display for Chunk {
@@ -168,5 +179,30 @@ mod tests {
         chunk.patch_jump(jump_address, -1);
 
         assert_eq!(chunk.op(jump_address), Some(&Op::Jump(-1)));
+    }
+
+    #[test]
+    #[should_panic]
+    fn patch_jump_invalid_operation() {
+        let mut chunk = Chunk::default()
+            .push(Op::ConstFloat(3.0))
+            .push(Op::ConstFloat(4.0))
+            .push(Op::Cmp);
+        let jump_address = chunk.add(Op::ConstFloat(0.0));
+
+        chunk.patch_jump(jump_address, -1);
+    }
+
+    #[test]
+    fn jump_to() {
+        let mut chunk = Chunk::default();
+        let target_address = chunk.add(Op::ConstFloat(3.0));
+        chunk.add(Op::ConstFloat(4.0));
+        chunk.add(Op::Cmp);
+        let jump_address = chunk.add(Op::Jump(0));
+
+        chunk.patch_jump_to(jump_address, target_address);
+
+        assert_eq!(chunk.op(jump_address), Some(&Op::Jump(-3)));
     }
 }

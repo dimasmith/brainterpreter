@@ -225,11 +225,9 @@ impl Compiler {
             let jump_offset = self.chunk.last_index() - then_jump;
             self.chunk.patch_jump(then_jump, jump_offset as i32);
             self.statement(otherwise)?;
-            let jump_offset = self.chunk.last_index() - else_jump;
-            self.chunk.patch_jump(else_jump, jump_offset as i32);
+            self.chunk.patch_jump_to_last(else_jump);
         } else {
-            let jump_offset = self.chunk.last_index() - then_jump;
-            self.chunk.patch_jump(then_jump, jump_offset as i32);
+            self.chunk.patch_jump_to_last(then_jump);
         }
         Ok(())
     }
