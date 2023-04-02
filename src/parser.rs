@@ -69,6 +69,7 @@ where
                 declaration
             }
             Token::If => self.if_statement(),
+            Token::While => self.while_statement(),
             Token::Identifier(name) => {
                 let assignment = self.variable_assignment(&token, name);
                 self.consume(Token::Semicolon)?;
@@ -227,6 +228,15 @@ where
             None
         };
         Ok(Statement::If(condition, Box::new(then_branch), else_branch))
+    }
+
+    fn while_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing while statement");
+        self.consume(Token::LParen)?;
+        let condition = self.expression(0)?;
+        self.consume(Token::RParen)?;
+        let body = self.statement()?;
+        Ok(Statement::While(condition, Box::new(body)))
     }
 
     fn advance(&mut self) -> SourceToken {

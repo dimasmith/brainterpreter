@@ -193,19 +193,19 @@ impl Vm {
             ValueType::Number(n) => {
                 self.out
                     .borrow_mut()
-                    .write_fmt(format_args!("{}", n))
+                    .write_fmt(format_args!("{}\n", n))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             ValueType::Bool(b) => {
                 self.out
                     .borrow_mut()
-                    .write_fmt(format_args!("{}", b))
+                    .write_fmt(format_args!("{}\n", b))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             ValueType::Address(a) => {
                 self.out
                     .borrow_mut()
-                    .write_fmt(format_args!("{}", a))
+                    .write_fmt(format_args!("{}\n", a))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             _ => {

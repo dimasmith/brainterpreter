@@ -41,6 +41,7 @@ pub enum Statement {
     Declaration(String, Option<Expression>),
     Assignment(String, Expression),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
+    While(Expression, Box<Statement>),
 }
 
 impl Program {

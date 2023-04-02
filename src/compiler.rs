@@ -60,6 +60,7 @@ impl Compiler {
             Statement::If(condition, then, otherwise) => {
                 self.if_statement(condition, then, otherwise)
             }
+            Statement::While(condition, body) => self.while_statement(condition, body),
         }
     }
 
@@ -229,6 +230,17 @@ impl Compiler {
         } else {
             self.chunk.patch_jump_to_last(then_jump);
         }
+        Ok(())
+    }
+
+    fn while_statement(&mut self, condition: &Expression, body: &Statement) -> CompilationResult {
+        let loop_start = self.chunk.last_index();
+        self.expression(condition)?;
+        let exit_jump = self.chunk.add(Op::JumpIfFalse(0));
+        self.statement(body)?;
+        let loop_jump = self.chunk.add(Op::Jump(0));
+        self.chunk.patch_jump_to(loop_jump, loop_start);
+        self.chunk.patch_jump_to_last(exit_jump);
         Ok(())
     }
 }
