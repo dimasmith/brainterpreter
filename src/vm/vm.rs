@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::log::LoggingTracer;
 use crate::trace::VmStepTrace;
-use crate::value::ValueType;
+use crate::value::{Function, ValueType};
 use crate::vm::opcode::{Chunk, Op};
 
 #[derive(Debug, Error)]
@@ -39,10 +39,9 @@ pub enum VmRuntimeError {
 }
 
 pub struct Vm {
-    ip: usize,
-    chunk: Chunk,
     stack: VmStack,
     globals: HashMap<String, ValueType>,
+    frames: Vec<CallFrame>,
     trace: Option<Box<dyn VmStepTrace>>,
     out: Rc<RefCell<dyn Write>>,
 }
@@ -54,20 +53,24 @@ pub struct VmStack {
     stack: Vec<ValueType>,
 }
 
+#[derive(Debug)]
+struct CallFrame {
+    ip: usize,
+    chunk: Chunk,
+}
+
 impl Vm {
-    pub fn interpret(&mut self, chunk: Chunk) -> Result<(), VmError> {
-        self.ip = 0;
-        self.chunk = chunk;
+    pub fn run_script(&mut self, script: Function) -> Result<(), VmError> {
+        let call_frame = CallFrame::new(script.chunk().clone());
+        self.frames.push(call_frame);
         self.run()?;
         Ok(())
     }
 
     fn run(&mut self) -> Result<(), VmError> {
-        while let Some(op) = self.chunk.op(self.ip) {
-            if let Some(trace) = &self.trace {
-                trace.trace_before(self.ip, &self.chunk, &self.stack);
-            }
-            self.ip += 1;
+        while let Some(op) = self.advance() {
+            let op = op.clone();
+            self.trace_before();
             match op {
                 Op::Return => {
                     if let Some(v) = &self.stack.peek(0) {
@@ -77,11 +80,11 @@ impl Vm {
                     }
                 }
                 Op::ConstFloat(n) => {
-                    let value = ValueType::Number(*n);
+                    let value = ValueType::Number(n);
                     self.stack.push(value);
                 }
                 Op::ConstBool(b) => {
-                    let value = ValueType::Bool(*b);
+                    let value = ValueType::Bool(b);
                     self.stack.push(value);
                 }
                 Op::Pop => {
@@ -97,14 +100,12 @@ impl Vm {
                 Op::Print => self.print()?,
                 Op::StoreGlobal(name) => self.global_variable(name.clone())?,
                 Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
-                Op::StoreLocal(offset) => self.write_local_variable(*offset)?,
-                Op::LoadLocal(offset) => self.read_local_variable(*offset)?,
-                Op::Jump(offset) => self.jump(*offset)?,
-                Op::JumpIfFalse(offset) => self.jump_if_false(*offset)?,
+                Op::StoreLocal(offset) => self.write_local_variable(offset)?,
+                Op::LoadLocal(offset) => self.read_local_variable(offset)?,
+                Op::Jump(offset) => self.jump(offset)?,
+                Op::JumpIfFalse(offset) => self.jump_if_false(offset)?,
             }
-            if let Some(trace) = &self.trace {
-                trace.trace_after(self.ip, &self.chunk, &self.stack);
-            }
+            self.trace_after()
         }
         Ok(())
     }
@@ -203,14 +204,7 @@ impl Vm {
     }
 
     fn jump(&mut self, offset: i32) -> Result<(), VmError> {
-        let ip = self
-            .ip
-            .checked_add_signed(offset as isize)
-            .ok_or(VmError::RuntimeError(VmRuntimeError::IllegalJump(
-                self.ip,
-                offset as isize,
-            )))?;
-        self.ip = ip;
+        self.offset_ip(offset as isize)?;
         Ok(())
     }
 
@@ -218,12 +212,47 @@ impl Vm {
         let value = self.stack.pop()?;
         if let ValueType::Bool(b) = value {
             if !b {
-                self.jump(offset)?;
+                self.offset_ip(offset as isize)?;
             }
         } else {
             return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
         }
         Ok(())
+    }
+
+    fn offset_ip(&mut self, offset: isize) -> Result<(), VmError> {
+        let frame = self.frames.last_mut().unwrap();
+        let ip = frame.ip;
+        let new_ip = ip.checked_add_signed(offset).ok_or(VmError::RuntimeError(
+            VmRuntimeError::IllegalJump(ip, offset),
+        ))?;
+        frame.ip = new_ip;
+        Ok(())
+    }
+
+    fn advance(&mut self) -> Option<&Op> {
+        self.frames.last_mut().and_then(|frame| frame.advance())
+    }
+
+    fn ip(&self) -> usize {
+        self.frames.last().map(|frame| frame.ip).unwrap_or(0)
+    }
+
+    fn chunk(&self) -> Chunk {
+        let frame = self.frames.last().unwrap();
+        frame.chunk.clone()
+    }
+
+    fn trace_before(&self) {
+        if let Some(ref tracer) = self.trace {
+            tracer.trace_before(self.ip(), &self.chunk(), &self.stack);
+        }
+    }
+
+    fn trace_after(&mut self) {
+        if let Some(trace) = &self.trace {
+            trace.trace_after(self.ip(), &self.chunk(), &self.stack);
+        }
     }
 }
 
@@ -232,9 +261,8 @@ impl Default for Vm {
         let tracer = LoggingTracer::default();
         let out = stdout();
         Vm {
-            ip: 0,
-            chunk: Chunk::default(),
             stack: VmStack::default(),
+            frames: Vec::new(),
             globals: HashMap::new(),
             trace: Some(Box::new(tracer)),
             out: Rc::new(RefCell::new(out)),
@@ -291,6 +319,22 @@ impl VmStack {
     }
 }
 
+impl CallFrame {
+    fn new(chunk: Chunk) -> Self {
+        CallFrame { chunk, ip: 0 }
+    }
+
+    fn op(&self) -> Option<&Op> {
+        self.chunk.op(self.ip)
+    }
+
+    fn advance(&mut self) -> Option<&Op> {
+        let op = self.chunk.op(self.ip);
+        self.ip += 1;
+        op
+    }
+}
+
 impl Default for VmStack {
     fn default() -> Self {
         let stack = Vec::with_capacity(STACK_SIZE);
@@ -300,17 +344,7 @@ impl Default for VmStack {
 
 #[cfg(test)]
 mod tests {
-    use crate::vm::opcode::Op;
-
     use super::*;
-
-    #[test]
-    fn interpret_correct_program() {
-        let program = Chunk::new(vec![Op::Return]);
-        let mut vm = Vm::default();
-        let result = vm.interpret(program);
-        assert!(result.is_ok());
-    }
 
     mod stack {
         use super::*;

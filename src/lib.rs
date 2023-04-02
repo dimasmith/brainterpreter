@@ -1,9 +1,10 @@
 //! Virtual machine to support running l9 toy programming language
+use std::error::Error;
+
 use crate::compiler::Compiler;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::vm::vm::Vm;
-use std::error::Error;
 
 pub mod ast;
 pub mod compiler;
@@ -21,9 +22,9 @@ pub fn interpret(source: &str) -> Result<(), Box<dyn Error>> {
     let mut parser = Parser::new(lexer);
     let ast = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let chunk = compiler.compile_program(ast)?;
+    let script = compiler.compile_script(ast)?;
     let mut vm = Vm::default();
-    vm.interpret(chunk)?;
+    vm.run_script(script)?;
 
     Ok(())
 }

@@ -2,6 +2,7 @@
 use thiserror::Error;
 
 use crate::ast::{Expression, Operation, Program, Statement};
+use crate::value::Function;
 use crate::vm::opcode::{Chunk, Op};
 
 type CompilationResult = Result<(), CompileError>;
@@ -36,6 +37,22 @@ struct Locals {
 }
 
 impl Compiler {
+    pub fn compile_script(&mut self, program: Program) -> Result<Function, CompileError> {
+        let mut script_compiler = Compiler::default();
+        let chunk = script_compiler.compile_program(program)?;
+        Ok(Function::script(chunk))
+    }
+
+    fn compile_function(
+        &mut self,
+        name: String,
+        program: Program,
+    ) -> Result<Function, CompileError> {
+        let mut function_compiler = Compiler::default();
+        let chunk = function_compiler.compile_program(program)?;
+        Ok(Function::new(name, chunk))
+    }
+
     pub fn compile_program(&mut self, program: Program) -> Result<Chunk, CompileError> {
         for statement in program.statements() {
             self.statement(statement)?;
@@ -64,11 +81,7 @@ impl Compiler {
         }
     }
 
-    fn variable_assignment(
-        &mut self,
-        name: &String,
-        expr: &Expression,
-    ) -> Result<(), CompileError> {
+    fn variable_assignment(&mut self, name: &str, expr: &Expression) -> Result<(), CompileError> {
         if self.locals.depth > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.expression(expr)?;
@@ -78,8 +91,7 @@ impl Compiler {
             }
         }
         self.expression(expr)?;
-        let variable_name = name.clone();
-        self.chunk.add(Op::StoreGlobal(variable_name));
+        self.chunk.add(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
 
