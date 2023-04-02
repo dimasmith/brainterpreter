@@ -1,8 +1,9 @@
 //! Instruments to trace virtual machine execution
 
-use crate::vm::opcode::Chunk;
-use crate::vm::vm::VmStack;
 use std::fmt::Debug;
+
+use crate::vm::machine::VmStack;
+use crate::vm::opcode::Chunk;
 
 pub trait VmStepTrace: Debug {
     // traces execution before opcode is processed

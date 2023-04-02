@@ -43,6 +43,7 @@ impl Compiler {
         Ok(Function::script(chunk))
     }
 
+    #[allow(dead_code)]
     fn compile_function(
         &mut self,
         name: String,

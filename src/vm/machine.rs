@@ -324,6 +324,7 @@ impl CallFrame {
         CallFrame { chunk, ip: 0 }
     }
 
+    #[allow(dead_code)]
     fn op(&self) -> Option<&Op> {
         self.chunk.op(self.ip)
     }

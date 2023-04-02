@@ -4,7 +4,7 @@ use std::error::Error;
 use crate::compiler::Compiler;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use crate::vm::vm::Vm;
+use crate::vm::machine::Vm;
 
 pub mod ast;
 pub mod compiler;
