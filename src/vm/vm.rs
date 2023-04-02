@@ -1,5 +1,8 @@
 //! Virtual machine to support running l9 toy programming language
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{stdout, Write};
+use std::rc::Rc;
 
 use thiserror::Error;
 
@@ -8,7 +11,7 @@ use crate::trace::VmStepTrace;
 use crate::value::ValueType;
 use crate::vm::opcode::{Chunk, Op};
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum VmError {
     #[error("compilation failed")]
     CompilationError,
@@ -16,7 +19,7 @@ pub enum VmError {
     RuntimeError(VmRuntimeError),
 }
 
-#[derive(Debug, Clone, PartialEq, Error, Default)]
+#[derive(Debug, Error, Default)]
 pub enum VmRuntimeError {
     #[default]
     #[error("unknown error")]
@@ -31,15 +34,17 @@ pub enum VmRuntimeError {
     WrongOperation,
     #[error("illegal jump from address {0} with offset {1}")]
     IllegalJump(usize, isize),
+    #[error("io error")]
+    IoError(#[from] std::io::Error),
 }
 
-#[derive(Debug)]
 pub struct Vm {
     ip: usize,
     chunk: Chunk,
     stack: VmStack,
     globals: HashMap<String, ValueType>,
     trace: Option<Box<dyn VmStepTrace>>,
+    out: Rc<RefCell<dyn Write>>,
 }
 
 const STACK_SIZE: usize = 1024 * 1024;
@@ -186,13 +191,22 @@ impl Vm {
     fn print(&mut self) -> Result<(), VmError> {
         match self.stack.pop()? {
             ValueType::Number(n) => {
-                println!("{}", n);
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}", n))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             ValueType::Bool(b) => {
-                println!("{}", b);
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}", b))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             ValueType::Address(a) => {
-                println!("{}", a);
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}", a))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
@@ -260,12 +274,26 @@ impl Vm {
 impl Default for Vm {
     fn default() -> Self {
         let tracer = LoggingTracer::default();
+        let out = stdout();
         Vm {
             ip: 0,
             chunk: Chunk::default(),
             stack: VmStack::default(),
             globals: HashMap::new(),
             trace: Some(Box::new(tracer)),
+            out: Rc::new(RefCell::new(out)),
+        }
+    }
+}
+
+impl Vm {
+    pub fn with_io<T>(out: Rc<RefCell<T>>) -> Self
+    where
+        T: Write + Send + Sync + 'static,
+    {
+        Vm {
+            out,
+            ..Default::default()
         }
     }
 }
