@@ -54,50 +54,6 @@ pub struct VmStack {
     stack: Vec<ValueType>,
 }
 
-impl VmStack {
-    pub fn pop(&mut self) -> Result<ValueType, VmError> {
-        self.stack
-            .pop()
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
-    }
-
-    pub fn peek(&self, offset: usize) -> Option<&ValueType> {
-        self.stack.get(offset)
-    }
-
-    fn last(&self) -> Option<&ValueType> {
-        self.stack.last()
-    }
-
-    pub fn len(&self) -> usize {
-        self.stack.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.stack.is_empty()
-    }
-
-    pub fn push(&mut self, value: ValueType) {
-        self.stack.push(value);
-    }
-
-    fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmError> {
-        if let Some(v) = self.stack.get_mut(offset) {
-            *v = value;
-            Ok(())
-        } else {
-            Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
-        }
-    }
-}
-
-impl Default for VmStack {
-    fn default() -> Self {
-        let stack = Vec::with_capacity(STACK_SIZE);
-        VmStack { stack }
-    }
-}
-
 impl Vm {
     pub fn interpret(&mut self, chunk: Chunk) -> Result<(), VmError> {
         self.ip = 0;
@@ -295,6 +251,50 @@ impl Vm {
             out,
             ..Default::default()
         }
+    }
+}
+
+impl VmStack {
+    pub fn pop(&mut self) -> Result<ValueType, VmError> {
+        self.stack
+            .pop()
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+    }
+
+    pub fn peek(&self, offset: usize) -> Option<&ValueType> {
+        self.stack.get(offset)
+    }
+
+    fn last(&self) -> Option<&ValueType> {
+        self.stack.last()
+    }
+
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+
+    pub fn push(&mut self, value: ValueType) {
+        self.stack.push(value);
+    }
+
+    fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmError> {
+        if let Some(v) = self.stack.get_mut(offset) {
+            *v = value;
+            Ok(())
+        } else {
+            Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+        }
+    }
+}
+
+impl Default for VmStack {
+    fn default() -> Self {
+        let stack = Vec::with_capacity(STACK_SIZE);
+        VmStack { stack }
     }
 }
 
