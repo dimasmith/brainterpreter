@@ -6,11 +6,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
     let i = 5;
-    while (i > 0) {
-        print i;
-        i = i - 1;
+    fun increment() {
+        i = i + 1;
     }
-    print 100;
     "#;
     interpret(source)
 }

@@ -36,6 +36,8 @@ pub enum VmRuntimeError {
     IllegalJump(usize, isize),
     #[error("io error")]
     IoError(#[from] std::io::Error),
+    #[error("undefined constant at index {0}")]
+    UndefinedConstant(usize),
 }
 
 pub struct Vm {
@@ -78,6 +80,10 @@ impl Vm {
                     } else {
                         println!("None");
                     }
+                }
+                Op::Const(n) => {
+                    let value = self.constant(n)?;
+                    self.stack.push(value);
                 }
                 Op::ConstFloat(n) => {
                     let value = ValueType::Number(n);
@@ -253,6 +259,13 @@ impl Vm {
         if let Some(trace) = &self.trace {
             trace.trace_after(self.ip(), &self.chunk(), &self.stack);
         }
+    }
+
+    fn constant(&self, index: usize) -> Result<ValueType, VmError> {
+        let chunk = self.chunk();
+        chunk.constant(index).cloned().ok_or(VmError::RuntimeError(
+            VmRuntimeError::UndefinedConstant(index),
+        ))
     }
 }
 

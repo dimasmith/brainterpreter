@@ -2,7 +2,7 @@
 use thiserror::Error;
 
 use crate::ast::{Expression, Operation, Program, Statement};
-use crate::value::Function;
+use crate::value::{Function, ValueType};
 use crate::vm::opcode::{Chunk, Op};
 
 type CompilationResult = Result<(), CompileError>;
@@ -66,7 +66,7 @@ impl Compiler {
             Statement::Expression(expr) => self.expression(expr),
             Statement::Print(expr) => {
                 self.expression(expr)?;
-                self.chunk.add(Op::Print);
+                self.chunk.add_op(Op::Print);
                 Ok(())
             }
             Statement::Declaration(name, value) => self.variable_declaration(name, value),
@@ -79,6 +79,7 @@ impl Compiler {
                 self.if_statement(condition, then, otherwise)
             }
             Statement::While(condition, body) => self.while_statement(condition, body),
+            Statement::FunctionDeclaration(name, body) => self.function_declaration(name, body),
         }
     }
 
@@ -86,13 +87,13 @@ impl Compiler {
         if self.locals.depth > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.expression(expr)?;
-                self.chunk.add(Op::StoreLocal(local));
-                self.chunk.add(Op::Pop); // removing hanging expression result from stack
+                self.chunk.add_op(Op::StoreLocal(local));
+                self.chunk.add_op(Op::Pop); // removing hanging expression result from stack
                 return Ok(());
             }
         }
         self.expression(expr)?;
-        self.chunk.add(Op::StoreGlobal(name.to_string()));
+        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
 
@@ -109,67 +110,68 @@ impl Compiler {
             if let Some(value) = value {
                 self.expression(value)?;
             } else {
-                self.chunk.add(Op::Nil);
+                self.chunk.add_op(Op::Nil);
             }
             self.locals.initialize_last_local();
-            self.chunk.add(Op::StoreLocal(self.locals.locals.len() - 1));
+            self.chunk
+                .add_op(Op::StoreLocal(self.locals.locals.len() - 1));
             return Ok(());
         }
 
         match value {
             Some(expr) => self.expression(expr)?,
             None => {
-                self.chunk.add(Op::Nil);
+                self.chunk.add_op(Op::Nil);
             }
         }
-        self.chunk.add(Op::StoreGlobal(name.to_string()));
+        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
 
     fn expression(&mut self, ast: &Expression) -> CompilationResult {
         match ast {
             Expression::NumberLiteral(n) => {
-                self.chunk.add(Op::ConstFloat(*n));
+                self.chunk.add_op(Op::ConstFloat(*n));
             }
             Expression::BooleanLiteral(b) => {
-                self.chunk.add(Op::ConstBool(*b));
+                self.chunk.add_op(Op::ConstBool(*b));
             }
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
                 match op {
                     Operation::Add => {
-                        self.chunk.add(Op::Add);
+                        self.chunk.add_op(Op::Add);
                     }
                     Operation::Sub => {
-                        self.chunk.add(Op::Sub);
+                        self.chunk.add_op(Op::Sub);
                     }
                     Operation::Mul => {
-                        self.chunk.add(Op::Mul);
+                        self.chunk.add_op(Op::Mul);
                     }
                     Operation::Div => {
-                        self.chunk.add(Op::Div);
+                        self.chunk.add_op(Op::Div);
                     }
                     Operation::Equal => {
-                        self.chunk.add(Op::Cmp);
+                        self.chunk.add_op(Op::Cmp);
                     }
                     Operation::NotEqual => {
-                        self.chunk.add(Op::Cmp);
-                        self.chunk.add(Op::Not);
+                        self.chunk.add_op(Op::Cmp);
+                        self.chunk.add_op(Op::Not);
                     }
                     Operation::Less => {
-                        self.chunk.add(Op::Ge);
-                        self.chunk.add(Op::Not);
+                        self.chunk.add_op(Op::Ge);
+                        self.chunk.add_op(Op::Not);
                     }
                     Operation::Greater => {
-                        self.chunk.add(Op::Le);
-                        self.chunk.add(Op::Not);
+                        self.chunk.add_op(Op::Le);
+                        self.chunk.add_op(Op::Not);
                     }
                     Operation::LessOrEqual => {
-                        self.chunk.add(Op::Le);
+                        self.chunk.add_op(Op::Le);
                     }
                     Operation::GreaterOrEqual => {
-                        self.chunk.add(Op::Ge);
+                        self.chunk.add_op(Op::Ge);
                     }
                     Operation::Not => panic!("not is not a binary operation"),
                 }
@@ -177,12 +179,12 @@ impl Compiler {
             Expression::Variable(name) => self.load_variable(name),
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs)?;
-                self.chunk.add(Op::ConstFloat(0.0));
-                self.chunk.add(Op::Sub);
+                self.chunk.add_op(Op::ConstFloat(0.0));
+                self.chunk.add_op(Op::Sub);
             }
             Expression::UnaryOperation(Operation::Not, lhs) => {
                 self.expression(lhs)?;
-                self.chunk.add(Op::Not);
+                self.chunk.add_op(Op::Not);
             }
             Expression::UnaryOperation(op, _) => {
                 panic!("unsupported unary operation {:?}", op);
@@ -190,7 +192,7 @@ impl Compiler {
             Expression::Cmp(a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
-                self.chunk.add(Op::Cmp);
+                self.chunk.add_op(Op::Cmp);
             }
         }
         Ok(())
@@ -198,10 +200,10 @@ impl Compiler {
 
     fn load_variable(&mut self, name: &str) {
         if let Some(local) = self.locals.resolve_local(name) {
-            self.chunk.add(Op::LoadLocal(local));
+            self.chunk.add_op(Op::LoadLocal(local));
             return;
         }
-        self.chunk.add(Op::LoadGlobal(name.to_string()));
+        self.chunk.add_op(Op::LoadGlobal(name.to_string()));
     }
 
     fn block(&mut self, statements: &Vec<Statement>) -> CompilationResult {
@@ -220,7 +222,7 @@ impl Compiler {
     fn end_scope(&mut self) {
         let locals_in_scope = self.locals.end_scope();
         for _ in 0..locals_in_scope {
-            self.chunk.add(Op::Pop);
+            self.chunk.add_op(Op::Pop);
         }
     }
 
@@ -231,11 +233,11 @@ impl Compiler {
         otherwise: &Option<Box<Statement>>,
     ) -> CompilationResult {
         self.expression(condition)?;
-        let then_jump = self.chunk.add(Op::JumpIfFalse(0));
+        let then_jump = self.chunk.add_op(Op::JumpIfFalse(0));
         self.statement(then)?;
 
         if let Some(otherwise) = otherwise {
-            let else_jump = self.chunk.add(Op::Jump(0));
+            let else_jump = self.chunk.add_op(Op::Jump(0));
             let jump_offset = self.chunk.last_index() - then_jump;
             self.chunk.patch_jump(then_jump, jump_offset as i32);
             self.statement(otherwise)?;
@@ -249,11 +251,23 @@ impl Compiler {
     fn while_statement(&mut self, condition: &Expression, body: &Statement) -> CompilationResult {
         let loop_start = self.chunk.last_index();
         self.expression(condition)?;
-        let exit_jump = self.chunk.add(Op::JumpIfFalse(0));
+        let exit_jump = self.chunk.add_op(Op::JumpIfFalse(0));
         self.statement(body)?;
-        let loop_jump = self.chunk.add(Op::Jump(0));
+        let loop_jump = self.chunk.add_op(Op::Jump(0));
         self.chunk.patch_jump_to(loop_jump, loop_start);
         self.chunk.patch_jump_to_last(exit_jump);
+        Ok(())
+    }
+
+    fn function_declaration(&mut self, name: &str, body: &Vec<Statement>) -> CompilationResult {
+        let mut compiler = Compiler::default();
+        let function_program = Program::new(body.clone());
+        let function = compiler.compile_function(name.to_string(), function_program)?;
+        let n = self
+            .chunk
+            .add_constant(ValueType::Function(Box::new(function)));
+        self.chunk.add_op(Op::Const(n));
+        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
 }

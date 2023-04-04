@@ -39,6 +39,7 @@ pub enum Statement {
     Print(Expression),
     Block(Vec<Statement>),
     Declaration(String, Option<Expression>),
+    FunctionDeclaration(String, Vec<Statement>),
     Assignment(String, Expression),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
     While(Expression, Box<Statement>),

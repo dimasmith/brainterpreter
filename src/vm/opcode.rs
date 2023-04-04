@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::value::ValueType;
+
 /// Operations supported by the virtual machine
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
@@ -9,6 +11,8 @@ pub enum Op {
     ConstFloat(f64),
     /// Pushes boolean constant on the stack.
     ConstBool(bool),
+    /// Pushes constant from the constant pool on the stack.
+    Const(usize),
     /// Add two top elements of the stack.
     Add,
     Sub,
@@ -45,6 +49,7 @@ pub enum Op {
 impl Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Op::Const(idx) => write!(f, "CONST, {}", idx),
             Op::ConstFloat(n) => write!(f, "CONST_F, {}", n),
             Op::ConstBool(b) => write!(f, "CONST_B, {}", b),
             Op::Nil => write!(f, "CONST_NIL"),
@@ -71,26 +76,39 @@ impl Display for Op {
 
 #[derive(Debug, Clone, Default)]
 pub struct Chunk {
+    constants: Vec<ValueType>,
     ops: Vec<Op>,
 }
 
 impl Chunk {
     pub fn new(ops: Vec<Op>) -> Self {
-        Chunk { ops }
+        Chunk {
+            ops,
+            constants: vec![],
+        }
     }
 
     pub fn push(mut self, op: Op) -> Self {
-        self.add(op);
+        self.add_op(op);
         self
     }
 
-    pub fn add(&mut self, op: Op) -> usize {
+    pub fn add_op(&mut self, op: Op) -> usize {
         self.ops.push(op);
         self.ops.len() - 1
     }
 
+    pub fn add_constant(&mut self, value: ValueType) -> usize {
+        self.constants.push(value);
+        self.constants.len() - 1
+    }
+
     pub fn op(&self, idx: usize) -> Option<&Op> {
         self.ops.get(idx)
+    }
+
+    pub fn constant(&self, idx: usize) -> Option<&ValueType> {
+        self.constants.get(idx)
     }
 
     pub fn len(&self) -> usize {
@@ -161,7 +179,7 @@ mod tests {
             .push(Op::ConstFloat(3.0))
             .push(Op::ConstFloat(4.0))
             .push(Op::Cmp);
-        let jump_address = chunk.add(Op::JumpIfFalse(0));
+        let jump_address = chunk.add_op(Op::JumpIfFalse(0));
 
         chunk.patch_jump(jump_address, -2);
 
@@ -174,7 +192,7 @@ mod tests {
             .push(Op::ConstFloat(3.0))
             .push(Op::ConstFloat(4.0))
             .push(Op::Cmp);
-        let jump_address = chunk.add(Op::Jump(0));
+        let jump_address = chunk.add_op(Op::Jump(0));
 
         chunk.patch_jump(jump_address, -1);
 
@@ -188,7 +206,7 @@ mod tests {
             .push(Op::ConstFloat(3.0))
             .push(Op::ConstFloat(4.0))
             .push(Op::Cmp);
-        let jump_address = chunk.add(Op::ConstFloat(0.0));
+        let jump_address = chunk.add_op(Op::ConstFloat(0.0));
 
         chunk.patch_jump(jump_address, -1);
     }
@@ -196,10 +214,10 @@ mod tests {
     #[test]
     fn jump_to() {
         let mut chunk = Chunk::default();
-        let target_address = chunk.add(Op::ConstFloat(3.0));
-        chunk.add(Op::ConstFloat(4.0));
-        chunk.add(Op::Cmp);
-        let jump_address = chunk.add(Op::Jump(0));
+        let target_address = chunk.add_op(Op::ConstFloat(3.0));
+        chunk.add_op(Op::ConstFloat(4.0));
+        chunk.add_op(Op::Cmp);
+        let jump_address = chunk.add_op(Op::Jump(0));
 
         chunk.patch_jump_to(jump_address, target_address);
 

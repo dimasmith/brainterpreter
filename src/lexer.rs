@@ -32,6 +32,7 @@ pub enum Token {
     Else,
     While,
     Let,
+    Fun,
     Identifier(String),
     EndOfFile,
     Error,
@@ -177,6 +178,7 @@ impl<'a> Lexer<'a> {
             "if" => Token::If.with_position(self.src_pos()),
             "else" => Token::Else.with_position(self.src_pos()),
             "while" => Token::While.with_position(self.src_pos()),
+            "fun" => Token::Fun.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }

@@ -68,6 +68,7 @@ where
                 self.consume(Token::Semicolon)?;
                 declaration
             }
+            Token::Fun => self.declare_function(),
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
@@ -214,6 +215,27 @@ where
         } else {
             Ok(Statement::Declaration(name.clone(), None))
         }
+    }
+
+    fn declare_function(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing function declaration");
+        let token = self.advance();
+        trace!("Function declaration token: {:?}", token);
+        let name = match token.kind() {
+            Token::Identifier(name) => name,
+            _ => {
+                return Err(ParsingError::UnexpectedToken(
+                    token.kind().clone(),
+                    *token.source(),
+                ))
+            }
+        };
+
+        self.consume(Token::LParen)?;
+        self.consume(Token::RParen)?;
+        self.consume(Token::LeftCurly)?;
+        let body = self.block_statement()?;
+        Ok(Statement::FunctionDeclaration(name.clone(), vec![body]))
     }
 
     fn if_statement(&mut self) -> Result<Statement, ParsingError> {
