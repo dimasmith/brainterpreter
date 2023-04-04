@@ -15,6 +15,8 @@ pub enum Op {
     ConstBool(bool),
     /// Pushes constant from the constant pool on the stack.
     Const(usize),
+    /// Loads indexed element from the array and pushes it on the stack.
+    ArrayIndex,
     /// Add two top elements of the stack.
     Add,
     Sub,
@@ -73,6 +75,7 @@ impl Display for Op {
             Op::Call => write!(f, "CALL"),
             Op::Jump(offset) => write!(f, "JMP {}", offset),
             Op::JumpIfFalse(offset) => write!(f, "JZ {}", offset),
+            Op::ArrayIndex => write!(f, "IDX"),
         }
     }
 }

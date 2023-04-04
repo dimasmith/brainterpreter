@@ -3,7 +3,7 @@
 use crate::ast::Expression::{BinaryOperation, NumberLiteral, UnaryOperation};
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Operation {
+pub enum BinaryOperator {
     Add,
     Sub,
     Mul,
@@ -14,7 +14,12 @@ pub enum Operation {
     Greater,
     LessOrEqual,
     GreaterOrEqual,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum UnaryOperator {
     Not,
+    Negate,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -28,10 +33,11 @@ pub enum Expression {
     NumberLiteral(f64),
     BooleanLiteral(bool),
     StringLiteral(String),
+    ArrayIndex(Box<Expression>, Box<Expression>),
     Variable(String),
     FunctionCall(String),
-    BinaryOperation(Operation, Box<Expression>, Box<Expression>),
-    UnaryOperation(Operation, Box<Expression>),
+    BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
+    UnaryOperation(UnaryOperator, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),
 }
 
@@ -65,11 +71,11 @@ impl Program {
 }
 
 impl Expression {
-    pub fn binary(op: Operation, lhs: Expression, rhs: Expression) -> Self {
+    pub fn binary(op: BinaryOperator, lhs: Expression, rhs: Expression) -> Self {
         BinaryOperation(op, Box::new(lhs), Box::new(rhs))
     }
 
-    pub fn unary(op: Operation, lhs: Expression) -> Self {
+    pub fn unary(op: UnaryOperator, lhs: Expression) -> Self {
         UnaryOperation(op, Box::new(lhs))
     }
 

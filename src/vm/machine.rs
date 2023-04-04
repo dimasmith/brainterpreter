@@ -38,6 +38,8 @@ pub enum VmRuntimeError {
     IoError(#[from] std::io::Error),
     #[error("undefined constant at index {0}")]
     UndefinedConstant(usize),
+    #[error("accessing out of bounds value on index {0} with size {1}")]
+    OutOfBounds(usize, f64),
 }
 
 pub struct Vm {
@@ -88,6 +90,7 @@ impl Vm {
                     let value = ValueType::Bool(b);
                     self.stack.push(value);
                 }
+                Op::ArrayIndex => self.binary_operation(op.clone())?,
                 Op::Pop => {
                     self.stack.pop()?;
                 }
@@ -128,6 +131,24 @@ impl Vm {
             (Op::Le, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a <= b),
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
+            (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
+            (Op::ArrayIndex, ValueType::Text(s), ValueType::Number(i)) => {
+                let s = s.as_ref();
+                if i < 0.0 {
+                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
+                        s.len(),
+                        i,
+                    )));
+                }
+                if i as usize >= s.len() {
+                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
+                        s.len(),
+                        i,
+                    )));
+                }
+                let c = s.chars().nth(i as usize).unwrap();
+                ValueType::Text(Box::new(c.to_string()))
+            }
             (Op::Not, _, _) => {
                 return Err(VmError::RuntimeError(VmRuntimeError::WrongOperation));
             }

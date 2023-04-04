@@ -5,7 +5,7 @@ use std::iter::Peekable;
 use log::trace;
 use thiserror::Error;
 
-use crate::ast::{Expression, Operation, Program, Statement};
+use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
 use crate::lexer::{SourceToken, Token};
 use crate::source::Position;
 
@@ -123,12 +123,12 @@ where
             Token::Minus => {
                 let binding = self.prefix_binding(token.clone())?;
                 let rhs = self.expression(binding)?;
-                Expression::unary(Operation::Sub, rhs)
+                Expression::unary(UnaryOperator::Negate, rhs)
             }
             Token::Bang => {
                 let binding = self.prefix_binding(token.clone())?;
                 let rhs = self.expression(binding)?;
-                Expression::unary(Operation::Not, rhs)
+                Expression::unary(UnaryOperator::Not, rhs)
             }
             Token::Identifier(name) => {
                 if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
@@ -151,31 +151,33 @@ where
         };
 
         loop {
-            let token = self.peek();
-            let op = match token.kind() {
-                Token::Plus => Operation::Add,
-                Token::Minus => Operation::Sub,
-                Token::Star => Operation::Mul,
-                Token::Slash => Operation::Div,
-                Token::EqualEqual => Operation::Equal,
-                Token::BangEqual => Operation::NotEqual,
-                Token::Less => Operation::Less,
-                Token::LessEqual => Operation::LessOrEqual,
-                Token::Greater => Operation::Greater,
-                Token::GreaterEqual => Operation::GreaterOrEqual,
-                Token::EndOfFile | Token::RightParen | Token::Semicolon => break,
-                _ => return Err(ParsingError::UnknownOperation(*token.source())),
-            };
+            let mut token = self.peek();
 
-            if let Some((left_binding, right_binding)) = self.infix_binding(&op) {
+            if let Some(left_binding) = self.postfix_binding(&token) {
                 if left_binding < min_binding {
                     break;
                 }
+                if let Token::LeftSquare = token.kind() {
+                    self.advance();
+                    let index = self.expression(0)?;
+                    self.consume(Token::RightSquare)?;
+                    lhs = Expression::ArrayIndex(Box::new(lhs), Box::new(index));
+                    token = self.peek();
+                }
+            }
 
+            if let Some((left_binding, right_binding)) = self.infix_binding(&token) {
+                if left_binding < min_binding {
+                    break;
+                }
+                let op = self
+                    .binary_operator()
+                    .ok_or_else(|| ParsingError::Unknown(*token.source()))?;
                 self.advance();
                 let rhs = self
                     .expression(right_binding)
                     .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
+
                 lhs = Expression::binary(op, lhs, rhs);
 
                 continue;
@@ -185,6 +187,23 @@ where
         }
 
         Ok(lhs)
+    }
+
+    fn binary_operator(&mut self) -> Option<BinaryOperator> {
+        let token = self.peek();
+        match token.kind() {
+            Token::Plus => Some(BinaryOperator::Add),
+            Token::Minus => Some(BinaryOperator::Sub),
+            Token::Star => Some(BinaryOperator::Mul),
+            Token::Slash => Some(BinaryOperator::Div),
+            Token::EqualEqual => Some(BinaryOperator::Equal),
+            Token::BangEqual => Some(BinaryOperator::NotEqual),
+            Token::Less => Some(BinaryOperator::Less),
+            Token::LessEqual => Some(BinaryOperator::LessOrEqual),
+            Token::Greater => Some(BinaryOperator::Greater),
+            Token::GreaterEqual => Some(BinaryOperator::GreaterOrEqual),
+            _ => None,
+        }
     }
 
     fn block_statement(&mut self) -> Result<Statement, ParsingError> {
@@ -203,14 +222,21 @@ where
         Ok(Statement::Block(statements))
     }
 
-    fn infix_binding(&self, op: &Operation) -> Option<(u8, u8)> {
-        match op {
-            Operation::Add | Operation::Sub => Some((3, 4)),
-            Operation::Mul | Operation::Div => Some((5, 6)),
-            Operation::Equal | Operation::NotEqual => Some((1, 2)),
-            Operation::Less | Operation::LessOrEqual => Some((1, 2)),
-            Operation::Greater | Operation::GreaterOrEqual => Some((1, 2)),
-            Operation::Not => None,
+    fn infix_binding(&self, token: &SourceToken) -> Option<(u8, u8)> {
+        match token.kind() {
+            Token::Plus | Token::Minus => Some((3, 4)),
+            Token::Star | Token::Slash => Some((5, 6)),
+            Token::EqualEqual | Token::BangEqual => Some((1, 2)),
+            Token::Less | Token::LessEqual => Some((1, 2)),
+            Token::Greater | Token::GreaterEqual => Some((1, 2)),
+            _ => None,
+        }
+    }
+
+    fn postfix_binding(&self, token: &SourceToken) -> Option<u8> {
+        match token.kind() {
+            Token::LeftSquare => Some(7),
+            _ => None,
         }
     }
 
@@ -322,7 +348,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::Operation;
+    use crate::ast::BinaryOperator;
 
     use super::*;
 
@@ -350,7 +376,11 @@ mod tests {
 
         assert_eq!(
             ast,
-            Expression::binary(Operation::Add, Expression::number(7), Expression::number(8))
+            Expression::binary(
+                BinaryOperator::Add,
+                Expression::number(7),
+                Expression::number(8)
+            )
         );
     }
 
@@ -371,9 +401,9 @@ mod tests {
         assert_eq!(
             ast,
             Expression::binary(
-                Operation::Sub,
+                BinaryOperator::Sub,
                 Expression::binary(
-                    Operation::Add,
+                    BinaryOperator::Add,
                     Expression::number(5),
                     Expression::number(10),
                 ),

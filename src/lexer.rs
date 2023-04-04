@@ -16,6 +16,8 @@ pub enum Token {
     RightParen,
     LeftCurly,
     RightCurly,
+    LeftSquare,
+    RightSquare,
     Equal,
     EqualEqual,
     Bang,
@@ -106,6 +108,8 @@ impl<'a> Lexer<'a> {
             ')' => Some(Token::RightParen.with_position(self.src_pos())),
             '{' => Some(Token::LeftCurly.with_position(self.src_pos())),
             '}' => Some(Token::RightCurly.with_position(self.src_pos())),
+            '[' => Some(Token::LeftSquare.with_position(self.src_pos())),
+            ']' => Some(Token::RightSquare.with_position(self.src_pos())),
             '=' => {
                 if self.advance_if('=') {
                     Some(Token::EqualEqual.with_position(self.src_pos()))

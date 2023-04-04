@@ -1,7 +1,7 @@
 //! Compiles AST into virtual machine instructions
 use thiserror::Error;
 
-use crate::ast::{Expression, Operation, Program, Statement};
+use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
 use crate::value::{Function, ValueType};
 use crate::vm::opcode::{Chunk, Op};
 
@@ -153,60 +153,61 @@ impl Compiler {
                 self.expression(b)?;
                 self.expression(a)?;
                 match op {
-                    Operation::Add => {
+                    BinaryOperator::Add => {
                         self.chunk.add_op(Op::Add);
                     }
-                    Operation::Sub => {
+                    BinaryOperator::Sub => {
                         self.chunk.add_op(Op::Sub);
                     }
-                    Operation::Mul => {
+                    BinaryOperator::Mul => {
                         self.chunk.add_op(Op::Mul);
                     }
-                    Operation::Div => {
+                    BinaryOperator::Div => {
                         self.chunk.add_op(Op::Div);
                     }
-                    Operation::Equal => {
+                    BinaryOperator::Equal => {
                         self.chunk.add_op(Op::Cmp);
                     }
-                    Operation::NotEqual => {
+                    BinaryOperator::NotEqual => {
                         self.chunk.add_op(Op::Cmp);
                         self.chunk.add_op(Op::Not);
                     }
-                    Operation::Less => {
+                    BinaryOperator::Less => {
                         self.chunk.add_op(Op::Ge);
                         self.chunk.add_op(Op::Not);
                     }
-                    Operation::Greater => {
+                    BinaryOperator::Greater => {
                         self.chunk.add_op(Op::Le);
                         self.chunk.add_op(Op::Not);
                     }
-                    Operation::LessOrEqual => {
+                    BinaryOperator::LessOrEqual => {
                         self.chunk.add_op(Op::Le);
                     }
-                    Operation::GreaterOrEqual => {
+                    BinaryOperator::GreaterOrEqual => {
                         self.chunk.add_op(Op::Ge);
                     }
-                    Operation::Not => panic!("not is not a binary operation"),
                 }
             }
             Expression::Variable(name) => self.load_variable(name),
             Expression::FunctionCall(name) => self.function_call(name)?,
-            Expression::UnaryOperation(Operation::Sub, lhs) => {
+            Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::ConstFloat(0.0));
                 self.chunk.add_op(Op::Sub);
             }
-            Expression::UnaryOperation(Operation::Not, lhs) => {
+            Expression::UnaryOperation(UnaryOperator::Not, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::Not);
-            }
-            Expression::UnaryOperation(op, _) => {
-                panic!("unsupported unary operation {:?}", op);
             }
             Expression::Cmp(a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
                 self.chunk.add_op(Op::Cmp);
+            }
+            Expression::ArrayIndex(array, index) => {
+                self.expression(index)?;
+                self.expression(array)?;
+                self.chunk.add_op(Op::ArrayIndex);
             }
         }
         Ok(())
@@ -372,7 +373,7 @@ mod tests {
     #[test]
     fn compile_arithmetic_expressions() {
         let add_expression = Expression::BinaryOperation(
-            Operation::Add,
+            BinaryOperator::Add,
             Box::new(Expression::NumberLiteral(3.0)),
             Box::new(Expression::NumberLiteral(8.5)),
         );
