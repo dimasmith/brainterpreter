@@ -119,6 +119,7 @@ where
             Token::Nil => Expression::Nil,
             Token::True => Expression::BooleanLiteral(true),
             Token::False => Expression::BooleanLiteral(false),
+            Token::StringLiteral(s) => Expression::StringLiteral(s.clone()),
             Token::Minus => {
                 let binding = self.prefix_binding(token.clone())?;
                 let rhs = self.expression(binding)?;

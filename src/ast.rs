@@ -27,6 +27,7 @@ pub enum Expression {
     Nil,
     NumberLiteral(f64),
     BooleanLiteral(bool),
+    StringLiteral(String),
     Variable(String),
     FunctionCall(String),
     BinaryOperation(Operation, Box<Expression>, Box<Expression>),

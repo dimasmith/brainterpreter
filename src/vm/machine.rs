@@ -117,6 +117,10 @@ impl Vm {
 
         let result = match (operation, value_a, value_b) {
             (Op::Add, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a + b),
+            (Op::Add, ValueType::Text(a), ValueType::Text(b)) => {
+                let concat = format!("{}{}", a, b);
+                ValueType::Text(Box::new(concat))
+            }
             (Op::Sub, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a - b),
             (Op::Mul, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a * b),
             (Op::Div, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a / b),
@@ -178,8 +182,11 @@ impl Vm {
                     .write_fmt(format_args!("{}:{}\n", "fun", f.name()))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            ValueType::Text(s) => {
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}\n", s))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
         }
         Ok(())

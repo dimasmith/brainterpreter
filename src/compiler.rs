@@ -140,6 +140,12 @@ impl Compiler {
             Expression::NumberLiteral(n) => {
                 self.chunk.add_op(Op::ConstFloat(*n));
             }
+            Expression::StringLiteral(s) => {
+                let n = self
+                    .chunk
+                    .add_constant(ValueType::Text(Box::new(s.clone())));
+                self.chunk.add_op(Op::Const(n));
+            }
             Expression::BooleanLiteral(b) => {
                 self.chunk.add_op(Op::ConstBool(*b));
             }

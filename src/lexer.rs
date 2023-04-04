@@ -11,6 +11,7 @@ pub enum Token {
     Minus,
     Star,
     Slash,
+    DoubleQuote,
     LeftParen,
     RightParen,
     LeftCurly,
@@ -36,6 +37,7 @@ pub enum Token {
     Return,
     Nil,
     Identifier(String),
+    StringLiteral(String),
     EndOfFile,
     Error,
 }
@@ -135,6 +137,7 @@ impl<'a> Lexer<'a> {
             ';' => Some(Token::Semicolon.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
+            '"' => Some(self.string_literal()),
             _ => {
                 error!("unknown token: {}", c);
                 Some(Token::Error.with_position(self.src_pos()))
@@ -162,6 +165,18 @@ impl<'a> Lexer<'a> {
         let number_literal = &self.source[self.start..self.pos];
         let value: f64 = number_literal.parse().expect("must be a correct number");
         Token::Number(value).with_position(self.src_pos())
+    }
+
+    fn string_literal(&mut self) -> SourceToken {
+        while let Some(c) = self.peek(0) {
+            if c == '"' {
+                break;
+            }
+            self.advance();
+        }
+        self.advance();
+        let string_literal = &self.source[(self.start + 1)..(self.pos - 1)];
+        Token::StringLiteral(string_literal.to_string()).with_position(self.src_pos())
     }
 
     fn identifier(&mut self) -> SourceToken {

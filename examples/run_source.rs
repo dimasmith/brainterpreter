@@ -6,10 +6,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
     fun inc() {
-        return nil;
+        return "Hello";
     }
-    print inc();
-    print inc;
+    print inc() + ", world!";    
     "#;
     interpret(source)
 }
