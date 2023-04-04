@@ -166,6 +166,18 @@ impl Vm {
                     .write_fmt(format_args!("{}\n", a))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
+            ValueType::Nil => {
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}\n", "nil"))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+            }
+            ValueType::Function(f) => {
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("{}:{}\n", "fun", f.name()))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+            }
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
             }
@@ -264,7 +276,7 @@ impl Vm {
 
     fn trace_before(&self) {
         if let Some(ref tracer) = self.trace {
-            tracer.trace_before(self.ip(), &self.chunk(), &self.stack);
+            tracer.trace_before(self.ip() - 1, &self.chunk(), &self.stack);
         }
     }
 

@@ -24,9 +24,11 @@ pub struct Program {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
+    Nil,
     NumberLiteral(f64),
     BooleanLiteral(bool),
     Variable(String),
+    FunctionCall(String),
     BinaryOperation(Operation, Box<Expression>, Box<Expression>),
     UnaryOperation(Operation, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),
@@ -44,6 +46,7 @@ pub enum Statement {
     Assignment(String, Expression),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
     While(Expression, Box<Statement>),
+    Return(Expression),
 }
 
 impl Program {

@@ -11,8 +11,8 @@ pub enum Token {
     Minus,
     Star,
     Slash,
-    LParen,
-    RParen,
+    LeftParen,
+    RightParen,
     LeftCurly,
     RightCurly,
     Equal,
@@ -33,6 +33,8 @@ pub enum Token {
     While,
     Let,
     Fun,
+    Return,
+    Nil,
     Identifier(String),
     EndOfFile,
     Error,
@@ -98,8 +100,8 @@ impl<'a> Lexer<'a> {
                     Some(Token::Slash.with_position(self.src_pos()))
                 }
             }
-            '(' => Some(Token::LParen.with_position(self.src_pos())),
-            ')' => Some(Token::RParen.with_position(self.src_pos())),
+            '(' => Some(Token::LeftParen.with_position(self.src_pos())),
+            ')' => Some(Token::RightParen.with_position(self.src_pos())),
             '{' => Some(Token::LeftCurly.with_position(self.src_pos())),
             '}' => Some(Token::RightCurly.with_position(self.src_pos())),
             '=' => {
@@ -179,6 +181,8 @@ impl<'a> Lexer<'a> {
             "else" => Token::Else.with_position(self.src_pos()),
             "while" => Token::While.with_position(self.src_pos()),
             "fun" => Token::Fun.with_position(self.src_pos()),
+            "return" => Token::Return.with_position(self.src_pos()),
+            "nil" => Token::Nil.with_position(self.src_pos()),
             _ => Token::Identifier(identifier.to_string()).with_position(self.src_pos()),
         }
     }

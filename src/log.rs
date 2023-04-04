@@ -38,7 +38,7 @@ impl LoggingTracer {
         if ip > half_win {
             start_index = ip - half_win;
         }
-        let end_index = std::cmp::min(chunk.len(), ip + half_win);
+        let end_index = std::cmp::min(chunk.len(), ip + 1);
         debug!("= instructions");
         for i in start_index..end_index {
             let op = chunk.op(i).unwrap();

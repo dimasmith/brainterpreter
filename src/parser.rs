@@ -72,11 +72,16 @@ where
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
-                if let Some(Token::LParen) = self.tokens.peek().map(|t| t.kind()) {
+                if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
                     self.function_call(name)
                 } else {
                     self.variable_assignment(&token, name)
                 }
+            }
+            Token::Return => {
+                let expr = self.expression(0)?;
+                self.consume(Token::Semicolon)?;
+                Ok(Statement::Return(expr))
             }
             _ => Err(ParsingError::Unknown(*token.source())),
         }
@@ -99,8 +104,8 @@ where
     }
 
     fn function_call(&mut self, name: &str) -> Result<Statement, ParsingError> {
-        self.consume(Token::LParen)?;
-        self.consume(Token::RParen)?;
+        self.consume(Token::LeftParen)?;
+        self.consume(Token::RightParen)?;
         self.consume(Token::Semicolon)?;
         Ok(Statement::FunctionCall(name.to_string()))
     }
@@ -111,6 +116,7 @@ where
         trace!("Parsing expression (token: {:?})", token);
         let mut lhs = match token.kind() {
             Token::Number(n) => Expression::number(*n),
+            Token::Nil => Expression::Nil,
             Token::True => Expression::BooleanLiteral(true),
             Token::False => Expression::BooleanLiteral(false),
             Token::Minus => {
@@ -123,11 +129,20 @@ where
                 let rhs = self.expression(binding)?;
                 Expression::unary(Operation::Not, rhs)
             }
-            Token::Identifier(name) => Expression::Variable(name.clone()),
-            Token::LParen => {
+            Token::Identifier(name) => {
+                if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
+                    self.consume(Token::LeftParen)?;
+                    let function_call = Expression::FunctionCall(name.clone());
+                    self.consume(Token::RightParen)?;
+                    function_call
+                } else {
+                    Expression::Variable(name.clone())
+                }
+            }
+            Token::LeftParen => {
                 let expr = self.expression(0)?;
                 match self.advance().kind() {
-                    Token::RParen => expr,
+                    Token::RightParen => expr,
                     _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
                 }
             }
@@ -147,7 +162,7 @@ where
                 Token::LessEqual => Operation::LessOrEqual,
                 Token::Greater => Operation::Greater,
                 Token::GreaterEqual => Operation::GreaterOrEqual,
-                Token::EndOfFile | Token::RParen | Token::Semicolon => break,
+                Token::EndOfFile | Token::RightParen | Token::Semicolon => break,
                 _ => return Err(ParsingError::UnknownOperation(*token.source())),
             };
 
@@ -242,8 +257,8 @@ where
             }
         };
 
-        self.consume(Token::LParen)?;
-        self.consume(Token::RParen)?;
+        self.consume(Token::LeftParen)?;
+        self.consume(Token::RightParen)?;
         self.consume(Token::LeftCurly)?;
         let body = self.block_statement()?;
         Ok(Statement::FunctionDeclaration(name.clone(), vec![body]))
@@ -251,9 +266,9 @@ where
 
     fn if_statement(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing if statement");
-        self.consume(Token::LParen)?;
+        self.consume(Token::LeftParen)?;
         let condition = self.expression(0)?;
-        self.consume(Token::RParen)?;
+        self.consume(Token::RightParen)?;
         let then_branch = self.statement()?;
         let else_branch = if self.advance_if(Token::Else) {
             Some(Box::new(self.statement()?))
@@ -265,9 +280,9 @@ where
 
     fn while_statement(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing while statement");
-        self.consume(Token::LParen)?;
+        self.consume(Token::LeftParen)?;
         let condition = self.expression(0)?;
-        self.consume(Token::RParen)?;
+        self.consume(Token::RightParen)?;
         let body = self.statement()?;
         Ok(Statement::While(condition, Box::new(body)))
     }

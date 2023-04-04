@@ -51,6 +51,7 @@ impl Compiler {
     ) -> Result<Function, CompileError> {
         let mut function_compiler = Compiler::default();
         let mut chunk = function_compiler.compile_program(program)?;
+        // chunk.add_op(Op::Nil);
         chunk.add_op(Op::Return);
         Ok(Function::new(name, chunk))
     }
@@ -82,6 +83,7 @@ impl Compiler {
             Statement::While(condition, body) => self.while_statement(condition, body),
             Statement::FunctionDeclaration(name, body) => self.function_declaration(name, body),
             Statement::FunctionCall(name) => self.function_call(name),
+            Statement::Return(expr) => self.return_statement(expr),
         }
     }
 
@@ -132,6 +134,9 @@ impl Compiler {
 
     fn expression(&mut self, ast: &Expression) -> CompilationResult {
         match ast {
+            Expression::Nil => {
+                self.chunk.add_op(Op::Nil);
+            }
             Expression::NumberLiteral(n) => {
                 self.chunk.add_op(Op::ConstFloat(*n));
             }
@@ -179,6 +184,7 @@ impl Compiler {
                 }
             }
             Expression::Variable(name) => self.load_variable(name),
+            Expression::FunctionCall(name) => self.function_call(name)?,
             Expression::UnaryOperation(Operation::Sub, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::ConstFloat(0.0));
@@ -276,6 +282,12 @@ impl Compiler {
     fn function_call(&mut self, name: &str) -> CompilationResult {
         self.chunk.add_op(Op::LoadGlobal(name.to_string()));
         self.chunk.add_op(Op::Call);
+        Ok(())
+    }
+
+    fn return_statement(&mut self, expression: &Expression) -> CompilationResult {
+        self.expression(expression)?;
+        self.chunk.add_op(Op::Return);
         Ok(())
     }
 }
