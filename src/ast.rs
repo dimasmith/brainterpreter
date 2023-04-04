@@ -40,6 +40,7 @@ pub enum Statement {
     Block(Vec<Statement>),
     Declaration(String, Option<Expression>),
     FunctionDeclaration(String, Vec<Statement>),
+    FunctionCall(String),
     Assignment(String, Expression),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
     While(Expression, Box<Statement>),

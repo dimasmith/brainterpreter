@@ -50,7 +50,8 @@ impl Compiler {
         program: Program,
     ) -> Result<Function, CompileError> {
         let mut function_compiler = Compiler::default();
-        let chunk = function_compiler.compile_program(program)?;
+        let mut chunk = function_compiler.compile_program(program)?;
+        chunk.add_op(Op::Return);
         Ok(Function::new(name, chunk))
     }
 
@@ -80,6 +81,7 @@ impl Compiler {
             }
             Statement::While(condition, body) => self.while_statement(condition, body),
             Statement::FunctionDeclaration(name, body) => self.function_declaration(name, body),
+            Statement::FunctionCall(name) => self.function_call(name),
         }
     }
 
@@ -268,6 +270,12 @@ impl Compiler {
             .add_constant(ValueType::Function(Box::new(function)));
         self.chunk.add_op(Op::Const(n));
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        Ok(())
+    }
+
+    fn function_call(&mut self, name: &str) -> CompilationResult {
+        self.chunk.add_op(Op::LoadGlobal(name.to_string()));
+        self.chunk.add_op(Op::Call);
         Ok(())
     }
 }

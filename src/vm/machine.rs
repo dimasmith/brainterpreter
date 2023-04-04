@@ -74,13 +74,8 @@ impl Vm {
             let op = op.clone();
             self.trace_before();
             match op {
-                Op::Return => {
-                    if let Some(v) = &self.stack.peek(0) {
-                        println!("{}", v);
-                    } else {
-                        println!("None");
-                    }
-                }
+                Op::Return => self.ret()?,
+                Op::Call => self.call_function()?,
                 Op::Const(n) => {
                     let value = self.constant(n)?;
                     self.stack.push(value);
@@ -104,8 +99,8 @@ impl Vm {
                 }
                 Op::Not => self.not()?,
                 Op::Print => self.print()?,
-                Op::StoreGlobal(name) => self.global_variable(name.clone())?,
-                Op::LoadGlobal(name) => self.load_global_variable(name.clone())?,
+                Op::StoreGlobal(name) => self.store_global(name.clone())?,
+                Op::LoadGlobal(name) => self.load_global(name.clone())?,
                 Op::StoreLocal(offset) => self.write_local_variable(offset)?,
                 Op::LoadLocal(offset) => self.read_local_variable(offset)?,
                 Op::Jump(offset) => self.jump(offset)?,
@@ -178,13 +173,13 @@ impl Vm {
         Ok(())
     }
 
-    fn global_variable(&mut self, name: String) -> Result<(), VmError> {
+    fn store_global(&mut self, name: String) -> Result<(), VmError> {
         let value = self.stack.pop()?;
         self.globals.insert(name, value);
         Ok(())
     }
 
-    fn load_global_variable(&mut self, name: String) -> Result<(), VmError> {
+    fn load_global(&mut self, name: String) -> Result<(), VmError> {
         let value = self.globals.get(&name).ok_or(VmError::RuntimeError(
             VmRuntimeError::UndefinedVariable(name.clone()),
         ))?;
@@ -223,6 +218,24 @@ impl Vm {
         } else {
             return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
         }
+        Ok(())
+    }
+
+    fn call_function(&mut self) -> Result<(), VmError> {
+        let value = self.stack.pop()?;
+        let function = match value {
+            ValueType::Function(f) => f,
+            _ => {
+                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            }
+        };
+        let frame = CallFrame::new(function.chunk().clone());
+        self.frames.push(frame);
+        Ok(())
+    }
+
+    fn ret(&mut self) -> Result<(), VmError> {
+        self.frames.pop();
         Ok(())
     }
 

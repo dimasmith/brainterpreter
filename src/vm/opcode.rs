@@ -7,6 +7,8 @@ use crate::value::ValueType;
 pub enum Op {
     /// Print the top value of the stack.
     Return,
+    /// Call function stored in the top of the stack.
+    Call,
     /// Pushes floating-point constant on the stack.
     ConstFloat(f64),
     /// Pushes boolean constant on the stack.
@@ -68,6 +70,7 @@ impl Display for Op {
             Op::StoreLocal(idx) => write!(f, "ST_L {}", idx),
             Op::Pop => write!(f, "POP"),
             Op::Return => write!(f, "RET"),
+            Op::Call => write!(f, "CALL"),
             Op::Jump(offset) => write!(f, "JMP {}", offset),
             Op::JumpIfFalse(offset) => write!(f, "JZ {}", offset),
         }

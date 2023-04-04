@@ -72,9 +72,11 @@ where
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
-                let assignment = self.variable_assignment(&token, name);
-                self.consume(Token::Semicolon)?;
-                assignment
+                if let Some(Token::LParen) = self.tokens.peek().map(|t| t.kind()) {
+                    self.function_call(name)
+                } else {
+                    self.variable_assignment(&token, name)
+                }
             }
             _ => Err(ParsingError::Unknown(*token.source())),
         }
@@ -88,10 +90,19 @@ where
         match self.advance().kind() {
             Token::Equal => {
                 let expr = self.expression(0)?;
-                Ok(Statement::Assignment(name.to_string(), expr))
+                let assignment = Statement::Assignment(name.to_string(), expr);
+                self.consume(Token::Semicolon)?;
+                Ok(assignment)
             }
             _ => Err(ParsingError::Unknown(*token.source())),
         }
+    }
+
+    fn function_call(&mut self, name: &str) -> Result<Statement, ParsingError> {
+        self.consume(Token::LParen)?;
+        self.consume(Token::RParen)?;
+        self.consume(Token::Semicolon)?;
+        Ok(Statement::FunctionCall(name.to_string()))
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
