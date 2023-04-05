@@ -78,7 +78,7 @@ impl Vm {
             self.trace_before();
             match op {
                 Op::Return => self.ret()?,
-                Op::Call => self.call_function()?,
+                Op::Call(arity) => self.call_function(arity)?,
                 Op::Const(n) => {
                     let value = self.constant(n)?;
                     self.stack.push(value);
@@ -268,10 +268,10 @@ impl Vm {
         Ok(())
     }
 
-    fn call_function(&mut self) -> Result<(), VmError> {
+    fn call_function(&mut self, arity: usize) -> Result<(), VmError> {
         let value = self
             .stack
-            .last()
+            .peek(arity)
             .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
         let function = match value {
             ValueType::Function(f) => f,
@@ -279,7 +279,10 @@ impl Vm {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
             }
         };
-        let stack_top = self.stack.len() - 1;
+        if arity != function.arity() {
+            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+        }
+        let stack_top = self.stack.len() - function.arity() - 1;
         let frame = CallFrame::new(function.chunk().clone(), stack_top);
         self.frames.push(frame);
         Ok(())
@@ -374,6 +377,10 @@ impl VmStack {
 
     pub fn get(&self, offset: usize) -> Option<&ValueType> {
         self.stack.get(offset)
+    }
+
+    fn peek(&self, offset: usize) -> Option<&ValueType> {
+        self.stack.get(self.stack.len() - offset - 1)
     }
 
     fn last(&self) -> Option<&ValueType> {

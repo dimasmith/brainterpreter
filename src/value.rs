@@ -18,6 +18,7 @@ pub enum ValueType {
 pub struct Function {
     name: String,
     chunk: Chunk,
+    arity: usize,
 }
 
 impl Display for ValueType {
@@ -34,14 +35,15 @@ impl Display for ValueType {
 }
 
 impl Function {
-    pub fn new(name: String, chunk: Chunk) -> Self {
-        Self { name, chunk }
+    pub fn new(name: String, chunk: Chunk, arity: usize) -> Self {
+        Self { name, chunk, arity }
     }
 
     pub fn script(chunk: Chunk) -> Self {
         Self {
             name: "$script$".to_string(),
             chunk,
+            arity: 0,
         }
     }
 
@@ -51,6 +53,10 @@ impl Function {
 
     pub fn chunk(&self) -> &Chunk {
         &self.chunk
+    }
+
+    pub fn arity(&self) -> usize {
+        self.arity
     }
 }
 

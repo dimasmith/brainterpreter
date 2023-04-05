@@ -5,16 +5,14 @@ use l9_vm::interpret;
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let source = r#"
-    let i = 0;
-    fun recurse() {
-        if (i < 5) {
-            i = i + 1;
-            recurse();
-        }
-        return i;
+    fun factorial(n) {   
+        if (n == 0) {
+            return 1;
+        }     
+        return n * factorial(n - 1);
     }
     
-    print recurse();
+    print factorial(4);    
     "#;
     interpret(source)
 }

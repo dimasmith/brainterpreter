@@ -43,18 +43,6 @@ impl Compiler {
         Ok(Function::script(chunk))
     }
 
-    fn compile_function(
-        &mut self,
-        name: String,
-        program: Program,
-    ) -> Result<Function, CompileError> {
-        let mut function_compiler = Compiler::default();
-        let mut chunk = function_compiler.compile_program(program)?;
-        chunk.add_op(Op::Nil);
-        chunk.add_op(Op::Return);
-        Ok(Function::new(name, chunk))
-    }
-
     pub fn compile_program(&mut self, program: Program) -> Result<Chunk, CompileError> {
         for statement in program.statements() {
             self.statement(statement)?;
@@ -80,8 +68,10 @@ impl Compiler {
                 self.if_statement(condition, then, otherwise)
             }
             Statement::While(condition, body) => self.while_statement(condition, body),
-            Statement::FunctionDeclaration(name, body) => self.function_declaration(name, body),
-            Statement::FunctionCall(name) => self.function_call(name),
+            Statement::FunctionDeclaration(name, params, body) => {
+                self.function_declaration(name, params, body)
+            }
+            Statement::FunctionCall(name, args) => self.function_call(name, args),
             Statement::Return(expr) => self.return_statement(expr),
         }
     }
@@ -128,6 +118,18 @@ impl Compiler {
             }
         }
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        Ok(())
+    }
+
+    fn declare_variable(&mut self, name: &str) -> CompilationResult {
+        if self.locals.depth > 0 {
+            if self.locals.check_local(name) {
+                return Err(CompileError::VariableAlreadyDeclared(name.to_string()));
+            }
+            self.locals.add_local(name);
+            self.locals.initialize_last_local();
+            return Ok(());
+        }
         Ok(())
     }
 
@@ -188,7 +190,7 @@ impl Compiler {
                 }
             }
             Expression::Variable(name) => self.load_variable(name),
-            Expression::FunctionCall(name) => self.function_call(name)?,
+            Expression::FunctionCall(name, args) => self.function_call(name, args)?,
             Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::ConstFloat(0.0));
@@ -273,10 +275,22 @@ impl Compiler {
         Ok(())
     }
 
-    fn function_declaration(&mut self, name: &str, body: &Vec<Statement>) -> CompilationResult {
-        let mut compiler = Compiler::default();
+    fn function_declaration(
+        &mut self,
+        name: &str,
+        params: &Vec<String>,
+        body: &Vec<Statement>,
+    ) -> CompilationResult {
+        let mut function_compiler = Compiler::default();
+        function_compiler.begin_scope();
+        for param in params {
+            function_compiler.declare_variable(param);
+        }
         let function_program = Program::new(body.clone());
-        let function = compiler.compile_function(name.to_string(), function_program)?;
+        let mut chunk = function_compiler.compile_program(function_program)?;
+        chunk.add_op(Op::Nil);
+        chunk.add_op(Op::Return);
+        let function = Ok(Function::new(name.to_string(), chunk, params.len()))?;
         let n = self
             .chunk
             .add_constant(ValueType::Function(Box::new(function)));
@@ -285,9 +299,12 @@ impl Compiler {
         Ok(())
     }
 
-    fn function_call(&mut self, name: &str) -> CompilationResult {
+    fn function_call(&mut self, name: &str, args: &Vec<Expression>) -> CompilationResult {
         self.chunk.add_op(Op::LoadGlobal(name.to_string()));
-        self.chunk.add_op(Op::Call);
+        for arg in args {
+            self.expression(arg)?;
+        }
+        self.chunk.add_op(Op::Call(args.len()));
         Ok(())
     }
 

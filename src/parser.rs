@@ -68,7 +68,7 @@ where
                 self.consume(Token::Semicolon)?;
                 declaration
             }
-            Token::Fun => self.declare_function(),
+            Token::Fun => self.function_declaration(),
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
@@ -104,10 +104,48 @@ where
     }
 
     fn function_call(&mut self, name: &str) -> Result<Statement, ParsingError> {
+        let mut arguments = vec![];
         self.consume(Token::LeftParen)?;
+        if let Some(Token::RightParen) = self.tokens.peek().map(|t| t.kind()) {
+            self.consume(Token::RightParen)?;
+            self.consume(Token::Semicolon)?;
+            return Ok(Statement::FunctionCall(name.to_string(), arguments));
+        }
+        loop {
+            let expr = self.expression(0)?;
+            arguments.push(expr);
+            let token = self.advance();
+            match token.kind() {
+                Token::Comma => continue,
+                Token::RightParen => break,
+                _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
+            }
+        }
         self.consume(Token::RightParen)?;
         self.consume(Token::Semicolon)?;
-        Ok(Statement::FunctionCall(name.to_string()))
+        Ok(Statement::FunctionCall(name.to_string(), arguments))
+    }
+
+    fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
+        trace!("Parsing function call expression (name: {})", name);
+        let mut arguments = vec![];
+        self.consume(Token::LeftParen)?;
+        if let Some(Token::RightParen) = self.tokens.peek().map(|t| t.kind()) {
+            self.consume(Token::RightParen)?;
+            self.consume(Token::Semicolon)?;
+            return Ok(Expression::FunctionCall(name.to_string(), arguments));
+        }
+        loop {
+            let expr = self.expression(0)?;
+            arguments.push(expr);
+            let token = self.advance();
+            match token.kind() {
+                Token::Comma => continue,
+                Token::RightParen => break,
+                _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
+            }
+        }
+        Ok(Expression::FunctionCall(name.to_string(), arguments))
     }
 
     fn expression(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
@@ -132,10 +170,7 @@ where
             }
             Token::Identifier(name) => {
                 if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
-                    self.consume(Token::LeftParen)?;
-                    let function_call = Expression::FunctionCall(name.clone());
-                    self.consume(Token::RightParen)?;
-                    function_call
+                    self.function_call_expression(name)?
                 } else {
                     Expression::Variable(name.clone())
                 }
@@ -270,7 +305,7 @@ where
         }
     }
 
-    fn declare_function(&mut self) -> Result<Statement, ParsingError> {
+    fn function_declaration(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing function declaration");
         let token = self.advance();
         trace!("Function declaration token: {:?}", token);
@@ -284,11 +319,26 @@ where
             }
         };
 
+        let mut parameters = vec![];
         self.consume(Token::LeftParen)?;
+        if let Token::Identifier(name) = self.peek().kind() {
+            parameters.push(name.clone());
+            self.advance();
+        }
+        while self.advance_if(Token::Comma) {
+            if let Token::Identifier(name) = self.peek().kind() {
+                parameters.push(name.clone());
+                self.advance();
+            }
+        }
         self.consume(Token::RightParen)?;
         self.consume(Token::LeftCurly)?;
         let body = self.block_statement()?;
-        Ok(Statement::FunctionDeclaration(name.clone(), vec![body]))
+        Ok(Statement::FunctionDeclaration(
+            name.clone(),
+            parameters,
+            vec![body],
+        ))
     }
 
     fn if_statement(&mut self) -> Result<Statement, ParsingError> {
@@ -442,5 +492,99 @@ mod tests {
         let ast = parser.statement().unwrap();
 
         assert_eq!(ast, Statement::Print(Expression::Variable("x".to_string())));
+    }
+
+    #[test]
+    fn function_declaration_no_parameters() {
+        let tokens = vec![
+            Token::Fun.into(),
+            Token::Identifier("foo".to_string()).into(),
+            Token::LeftParen.into(),
+            Token::RightParen.into(),
+            Token::LeftCurly.into(),
+            Token::Print.into(),
+            Token::Identifier("x".to_string()).into(),
+            Token::Semicolon.into(),
+            Token::RightCurly.into(),
+        ]
+        .into_iter();
+        let mut parser = Parser::new(tokens);
+
+        let ast = parser.statement().unwrap();
+
+        assert_eq!(
+            ast,
+            Statement::FunctionDeclaration(
+                "foo".to_string(),
+                vec![],
+                vec![Statement::Block(vec![Statement::Print(
+                    Expression::Variable("x".to_string())
+                )])]
+            )
+        );
+    }
+
+    #[test]
+    fn function_declaration_single_parameter() {
+        let tokens = vec![
+            Token::Fun.into(),
+            Token::Identifier("foo".to_string()).into(),
+            Token::LeftParen.into(),
+            Token::Identifier("a".to_string()).into(),
+            Token::RightParen.into(),
+            Token::LeftCurly.into(),
+            Token::Print.into(),
+            Token::Identifier("x".to_string()).into(),
+            Token::Semicolon.into(),
+            Token::RightCurly.into(),
+        ]
+        .into_iter();
+        let mut parser = Parser::new(tokens);
+
+        let ast = parser.statement().unwrap();
+
+        assert_eq!(
+            ast,
+            Statement::FunctionDeclaration(
+                "foo".to_string(),
+                vec!["a".to_string()],
+                vec![Statement::Block(vec![Statement::Print(
+                    Expression::Variable("x".to_string())
+                )])]
+            )
+        );
+    }
+
+    #[test]
+    fn function_declaration_multiple_parameters() {
+        let tokens = vec![
+            Token::Fun.into(),
+            Token::Identifier("foo".to_string()).into(),
+            Token::LeftParen.into(),
+            Token::Identifier("a".to_string()).into(),
+            Token::Comma.into(),
+            Token::Identifier("b".to_string()).into(),
+            Token::RightParen.into(),
+            Token::LeftCurly.into(),
+            Token::Print.into(),
+            Token::Identifier("x".to_string()).into(),
+            Token::Semicolon.into(),
+            Token::RightCurly.into(),
+        ]
+        .into_iter();
+        let mut parser = Parser::new(tokens);
+
+        let ast = parser.statement().unwrap();
+
+        assert_eq!(
+            ast,
+            Statement::FunctionDeclaration(
+                "foo".to_string(),
+                vec!["a".to_string(), "b".to_string()],
+                vec![Statement::Block(vec![Statement::Print(
+                    Expression::Variable("x".to_string())
+                )])]
+            )
+        );
     }
 }

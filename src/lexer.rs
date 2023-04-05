@@ -27,6 +27,7 @@ pub enum Token {
     LessEqual,
     GreaterEqual,
     Semicolon,
+    Comma,
     Number(f64),
     True,
     False,
@@ -139,6 +140,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             ';' => Some(Token::Semicolon.with_position(self.src_pos())),
+            ',' => Some(Token::Comma.with_position(self.src_pos())),
             '0'..='9' => Some(self.number()),
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
             '"' => Some(self.string_literal()),
