@@ -24,7 +24,7 @@ impl LoggingTracer {
     fn print_stack(&self, stack: &VmStack, stage: &str) {
         debug!("= stack {}", stage);
         for i in 0..stack.len() {
-            let value = stack.peek(i).unwrap();
+            let value = stack.get(i).unwrap();
             debug!("{}:\t{}", i, value);
         }
 

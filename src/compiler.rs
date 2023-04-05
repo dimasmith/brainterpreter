@@ -43,7 +43,6 @@ impl Compiler {
         Ok(Function::script(chunk))
     }
 
-    #[allow(dead_code)]
     fn compile_function(
         &mut self,
         name: String,
@@ -51,7 +50,7 @@ impl Compiler {
     ) -> Result<Function, CompileError> {
         let mut function_compiler = Compiler::default();
         let mut chunk = function_compiler.compile_program(program)?;
-        // chunk.add_op(Op::Nil);
+        chunk.add_op(Op::Nil);
         chunk.add_op(Op::Return);
         Ok(Function::new(name, chunk))
     }

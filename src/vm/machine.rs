@@ -61,11 +61,12 @@ pub struct VmStack {
 struct CallFrame {
     ip: usize,
     chunk: Chunk,
+    stack_top: usize,
 }
 
 impl Vm {
     pub fn run_script(&mut self, script: Function) -> Result<(), VmError> {
-        let call_frame = CallFrame::new(script.chunk().clone());
+        let call_frame = CallFrame::new(script.chunk().clone(), 0);
         self.frames.push(call_frame);
         self.run()?;
         Ok(())
@@ -232,14 +233,20 @@ impl Vm {
             .stack
             .last()
             .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
-        self.stack.set(offset, value.clone())?;
+        let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
+        self.stack.set(frame_offset, value.clone())?;
         Ok(())
     }
 
     fn read_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
-        let value = self.stack.stack.get(offset).ok_or(VmError::RuntimeError(
-            VmRuntimeError::UndefinedVariable(offset.to_string()),
-        ))?;
+        let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
+        let value = self
+            .stack
+            .stack
+            .get(frame_offset)
+            .ok_or(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
+                frame_offset.to_string(),
+            )))?;
         self.stack.push(value.clone());
         Ok(())
     }
@@ -262,20 +269,30 @@ impl Vm {
     }
 
     fn call_function(&mut self) -> Result<(), VmError> {
-        let value = self.stack.pop()?;
+        let value = self
+            .stack
+            .last()
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
         let function = match value {
             ValueType::Function(f) => f,
             _ => {
                 return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
             }
         };
-        let frame = CallFrame::new(function.chunk().clone());
+        let stack_top = self.stack.len() - 1;
+        let frame = CallFrame::new(function.chunk().clone(), stack_top);
         self.frames.push(frame);
         Ok(())
     }
 
     fn ret(&mut self) -> Result<(), VmError> {
-        self.frames.pop();
+        let result = self.stack.pop()?;
+        let frame = self
+            .frames
+            .pop()
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
+        self.stack.stack.truncate(frame.stack_top);
+        self.stack.push(result);
         Ok(())
     }
 
@@ -355,7 +372,7 @@ impl VmStack {
             .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
     }
 
-    pub fn peek(&self, offset: usize) -> Option<&ValueType> {
+    pub fn get(&self, offset: usize) -> Option<&ValueType> {
         self.stack.get(offset)
     }
 
@@ -383,11 +400,19 @@ impl VmStack {
             Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
         }
     }
+
+    fn top(&self) -> usize {
+        self.stack.len()
+    }
 }
 
 impl CallFrame {
-    fn new(chunk: Chunk) -> Self {
-        CallFrame { chunk, ip: 0 }
+    fn new(chunk: Chunk, stack_top: usize) -> Self {
+        CallFrame {
+            chunk,
+            ip: 0,
+            stack_top,
+        }
     }
 
     #[allow(dead_code)]
