@@ -187,6 +187,9 @@ impl Compiler {
                     BinaryOperator::GreaterOrEqual => {
                         self.chunk.add_op(Op::Ge);
                     }
+                    BinaryOperator::Assign => {
+                        // everything is already on the stack
+                    }
                 }
             }
             Expression::Variable(name) => self.load_variable(name),

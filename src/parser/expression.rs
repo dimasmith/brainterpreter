@@ -23,22 +23,20 @@ where
             Token::False => Expression::BooleanLiteral(false),
             Token::StringLiteral(s) => Expression::StringLiteral(s.clone()),
             Token::Minus => {
-                let binding = self.prefix_binding(token.clone())?;
+                let binding = self
+                    .prefix_binding(token.clone())
+                    .ok_or(ParsingError::UnknownOperation(*token.source()))?;
                 let rhs = self.expression_bp(binding)?;
                 Expression::unary(UnaryOperator::Negate, rhs)
             }
             Token::Bang => {
-                let binding = self.prefix_binding(token.clone())?;
+                let binding = self
+                    .prefix_binding(token.clone())
+                    .ok_or(ParsingError::UnknownOperation(*token.source()))?;
                 let rhs = self.expression_bp(binding)?;
                 Expression::unary(UnaryOperator::Not, rhs)
             }
-            Token::Identifier(name) => {
-                if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
-                    self.function_call_expression(name)?
-                } else {
-                    Expression::Variable(name.clone())
-                }
-            }
+            Token::Identifier(name) => self.variable_expression(name)?,
             Token::LeftParen => {
                 let expr = self.expression_bp(0)?;
                 match self.advance().kind() {
@@ -62,6 +60,14 @@ where
                     self.consume(Token::RightSquare)?;
                     lhs = Expression::Index(Box::new(lhs), Box::new(index));
                     token = self.peek();
+                } else if let Token::LeftParen = token.kind() {
+                    match lhs {
+                        Expression::Variable(name) => {
+                            lhs = self.function_call_expression(&name)?;
+                            token = self.peek();
+                        }
+                        _ => return Err(ParsingError::InvalidCall(*token.source())),
+                    }
                 }
             }
 
@@ -86,6 +92,11 @@ where
         }
 
         Ok(lhs)
+    }
+
+    fn variable_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
+        trace!("Parsing variable expression (name: {})", name);
+        Ok(Expression::Variable(name.to_string()))
     }
 
     fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
@@ -122,32 +133,88 @@ where
             Token::LessEqual => Some(BinaryOperator::LessOrEqual),
             Token::Greater => Some(BinaryOperator::Greater),
             Token::GreaterEqual => Some(BinaryOperator::GreaterOrEqual),
+            Token::Equal => Some(BinaryOperator::Assign),
             _ => None,
         }
     }
 
     fn infix_binding(&self, token: &SourceToken) -> Option<(u8, u8)> {
         match token.kind() {
-            Token::Plus | Token::Minus => Some((3, 4)),
-            Token::Star | Token::Slash => Some((5, 6)),
-            Token::EqualEqual | Token::BangEqual => Some((1, 2)),
-            Token::Less | Token::LessEqual => Some((1, 2)),
-            Token::Greater | Token::GreaterEqual => Some((1, 2)),
+            Token::Plus | Token::Minus => Precedence::Term.infix_binding(),
+            Token::Star | Token::Slash => Precedence::Factor.infix_binding(),
+            Token::EqualEqual | Token::BangEqual => Precedence::Equality.infix_binding(),
+            Token::Less | Token::LessEqual => Precedence::Comparison.infix_binding(),
+            Token::Greater | Token::GreaterEqual => Precedence::Comparison.infix_binding(),
+            Token::Equal => Precedence::Assignment.infix_binding(),
             _ => None,
         }
     }
 
     fn postfix_binding(&self, token: &SourceToken) -> Option<u8> {
         match token.kind() {
-            Token::LeftSquare => Some(7),
+            Token::LeftSquare => Precedence::Index.postfix_binding(),
+            Token::LeftParen => Precedence::Call.postfix_binding(),
             _ => None,
         }
     }
 
-    fn prefix_binding(&self, token: SourceToken) -> Result<u8, ParsingError> {
+    fn prefix_binding(&self, token: SourceToken) -> Option<u8> {
         match token.kind() {
-            Token::Minus | Token::Bang => Ok(7),
-            _ => Err(ParsingError::UnknownOperation(*token.source())),
+            Token::Minus | Token::Bang => Precedence::Unary.prefix_binding(),
+            _ => None,
+        }
+    }
+}
+
+enum Precedence {
+    None,
+    Assignment,
+    Or,
+    And,
+    Equality,
+    Comparison,
+    Term,
+    Factor,
+    Unary,
+    Call,
+    Index,
+}
+
+impl Precedence {
+    fn base_binding(&self) -> u8 {
+        match self {
+            Precedence::None => 0,
+            Precedence::Assignment => 1,
+            Precedence::Or => 3,
+            Precedence::And => 5,
+            Precedence::Equality => 7,
+            Precedence::Comparison => 9,
+            Precedence::Term => 11,
+            Precedence::Factor => 13,
+            Precedence::Unary => 15,
+            Precedence::Call => 17,
+            Precedence::Index => 19,
+        }
+    }
+
+    fn infix_binding(&self) -> Option<(u8, u8)> {
+        match self {
+            Precedence::None | Precedence::Unary | Precedence::Index => None,
+            p => Some((p.base_binding(), p.base_binding() + 1)),
+        }
+    }
+
+    fn prefix_binding(&self) -> Option<u8> {
+        match self {
+            Precedence::Unary => Some(self.base_binding()),
+            _ => None,
+        }
+    }
+
+    fn postfix_binding(&self) -> Option<u8> {
+        match self {
+            Precedence::Index | Precedence::Call => Some(self.base_binding()),
+            _ => None,
         }
     }
 }
@@ -206,6 +273,20 @@ mod tests {
                 BinaryOperator::Add,
                 Expression::unary(UnaryOperator::Negate, Expression::number(1)),
                 Expression::number(2)
+            )
+        );
+    }
+
+    #[test]
+    fn assignment_expression() {
+        let mut parser = Parser::new(Lexer::new("a = 1"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::binary(
+                BinaryOperator::Assign,
+                Expression::Variable("a".to_string()),
+                Expression::number(1)
             )
         );
     }

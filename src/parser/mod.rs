@@ -33,6 +33,8 @@ pub enum ParsingError {
     UnknownOperation(Position),
     #[error("missing closing parentheses at {0}")]
     MissingClosingParentheses(Position),
+    #[error("attempting to call uncallable object {0}")]
+    InvalidCall(Position),
 }
 
 impl<T> Parser<T>

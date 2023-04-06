@@ -14,6 +14,7 @@ pub enum BinaryOperator {
     Greater,
     LessOrEqual,
     GreaterOrEqual,
+    Assign,
 }
 
 #[derive(Debug, Clone, PartialEq)]
