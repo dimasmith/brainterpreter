@@ -33,7 +33,8 @@ pub enum Expression {
     NumberLiteral(f64),
     BooleanLiteral(bool),
     StringLiteral(String),
-    ArrayIndex(Box<Expression>, Box<Expression>),
+    /// Access to array-like variable element by index
+    Index(Box<Expression>, Box<Expression>),
     Variable(String),
     Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),

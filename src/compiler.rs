@@ -205,7 +205,7 @@ impl Compiler {
                 self.expression(a)?;
                 self.chunk.add_op(Op::Cmp);
             }
-            Expression::ArrayIndex(array, index) => {
+            Expression::Index(array, index) => {
                 self.expression(index)?;
                 self.expression(array)?;
                 self.chunk.add_op(Op::ArrayIndex);

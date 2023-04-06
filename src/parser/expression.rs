@@ -60,7 +60,7 @@ where
                     self.advance();
                     let index = self.expression_bp(0)?;
                     self.consume(Token::RightSquare)?;
-                    lhs = Expression::ArrayIndex(Box::new(lhs), Box::new(index));
+                    lhs = Expression::Index(Box::new(lhs), Box::new(index));
                     token = self.peek();
                 }
             }
