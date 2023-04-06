@@ -35,7 +35,7 @@ pub enum Expression {
     StringLiteral(String),
     ArrayIndex(Box<Expression>, Box<Expression>),
     Variable(String),
-    FunctionCall(String, Vec<Expression>),
+    Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),
