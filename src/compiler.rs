@@ -190,7 +190,7 @@ impl Compiler {
                 }
             }
             Expression::Variable(name) => self.load_variable(name),
-            Expression::FunctionCall(name, args) => self.function_call(name, args)?,
+            Expression::Call(name, args) => self.function_call(name, args)?,
             Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::ConstFloat(0.0));
