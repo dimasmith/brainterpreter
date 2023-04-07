@@ -1,7 +1,8 @@
 use log::trace;
 
 use crate::ast::Statement;
-use crate::lexer::{SourceToken, Token};
+use crate::lexer::token::Token;
+use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
 
 impl<T> Parser<T>
@@ -183,7 +184,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::ast::Expression;
-    use crate::lexer::{Lexer, SourceToken, Token};
+    use crate::lexer::token::Token;
+    use crate::lexer::{Lexer, SourceToken};
 
     use super::*;
 

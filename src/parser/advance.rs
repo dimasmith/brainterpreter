@@ -1,6 +1,7 @@
 use log::trace;
 
-use crate::lexer::{SourceToken, Token};
+use crate::lexer::token::Token;
+use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
 
 impl<T> Parser<T>
@@ -31,10 +32,11 @@ where
         if *token.kind() == expected {
             Ok(())
         } else {
-            Err(ParsingError::UnexpectedToken(
-                token.kind().clone(),
-                *token.source(),
-            ))
+            Err(ParsingError::MissingToken {
+                position: *token.source(),
+                expected,
+                actual: token.kind().clone(),
+            })
         }
     }
 }

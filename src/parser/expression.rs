@@ -1,7 +1,8 @@
 use log::trace;
 
 use crate::ast::{BinaryOperator, Expression, UnaryOperator};
-use crate::lexer::{SourceToken, Token};
+use crate::lexer::token::Token;
+use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
 
 impl<T> Parser<T>

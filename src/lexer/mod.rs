@@ -2,48 +2,11 @@
 
 use log::error;
 
+use token::Token;
+
 use crate::source::Position;
 
-/// Lexical token of the l9 language
-#[derive(Debug, Clone, PartialEq)]
-pub enum Token {
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    DoubleQuote,
-    LeftParen,
-    RightParen,
-    LeftCurly,
-    RightCurly,
-    LeftSquare,
-    RightSquare,
-    Equal,
-    EqualEqual,
-    Bang,
-    BangEqual,
-    Less,
-    Greater,
-    LessEqual,
-    GreaterEqual,
-    Semicolon,
-    Comma,
-    Number(f64),
-    True,
-    False,
-    Print,
-    If,
-    Else,
-    While,
-    Let,
-    Fun,
-    Return,
-    Nil,
-    Identifier(String),
-    StringLiteral(String),
-    EndOfFile,
-    Error,
-}
+pub mod token;
 
 /// Adds debug information to the token
 #[derive(Debug, Clone, PartialEq)]
@@ -293,16 +256,6 @@ impl SourceToken {
 impl PartialEq<Token> for SourceToken {
     fn eq(&self, other: &Token) -> bool {
         &self.kind == other
-    }
-}
-
-impl Token {
-    pub fn with_position(self, pos: Position) -> SourceToken {
-        SourceToken::new(self, pos)
-    }
-
-    pub fn with_line(self, line: usize) -> SourceToken {
-        SourceToken::new(self, Position::new(line, 0))
     }
 }
 

@@ -6,7 +6,8 @@ use log::trace;
 use thiserror::Error;
 
 use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
-use crate::lexer::{SourceToken, Token};
+use crate::lexer::token::Token;
+use crate::lexer::SourceToken;
 use crate::source::Position;
 
 mod advance;
@@ -25,8 +26,14 @@ where
 pub enum ParsingError {
     #[error("error during parsing at {0}")]
     Unknown(Position),
-    #[error("unexpected token `{0:?}` at {1}")]
+    #[error("unexpected token `{0}` at {1}")]
     UnexpectedToken(Token, Position),
+    #[error("{position}: expected `{expected}` but found `{actual}`")]
+    MissingToken {
+        position: Position,
+        expected: Token,
+        actual: Token,
+    },
     #[error("missing operand at {0}")]
     MissingOperand(Position),
     #[error("unknown operation at {0}")]
