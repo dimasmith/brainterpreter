@@ -10,18 +10,17 @@ where
     T: Iterator<Item = SourceToken>,
 {
     pub fn statement(&mut self) -> Result<Statement, ParsingError> {
-        let token = self.advance();
-        match token.kind() {
+        match self.advance() {
             Token::Print => {
                 trace!("Parsing print statement");
                 let expr = self.expression()?;
-                self.consume(Token::Semicolon)?;
+                self.consume(&Token::Semicolon)?;
                 Ok(Statement::Print(expr))
             }
             Token::LeftCurly => self.block_statement(),
             Token::Let => {
                 let declaration = self.variable_declaration();
-                self.consume(Token::Semicolon)?;
+                self.consume(&Token::Semicolon)?;
                 declaration
             }
             Token::Fun => self.function_declaration(),
@@ -29,56 +28,61 @@ where
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
                 if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
-                    self.function_call(name)
+                    self.function_call(&name)
                 } else {
-                    self.variable_assignment(&token, name)
+                    // &self.advance()
+                    self.variable_assignment(&name)
                 }
             }
             Token::Return => {
                 let expr = self.expression()?;
-                self.consume(Token::Semicolon)?;
+                self.consume(&Token::Semicolon)?;
                 Ok(Statement::Return(expr))
             }
-            _ => Err(ParsingError::Unknown(*token.source())),
+            _ => Err(ParsingError::Unknown(self.last_position())),
         }
     }
 
-    fn variable_assignment(
-        &mut self,
-        token: &SourceToken,
-        name: &str,
-    ) -> Result<Statement, ParsingError> {
-        match self.advance().kind() {
+    fn variable_assignment(&mut self, name: &str) -> Result<Statement, ParsingError> {
+        match self.advance() {
             Token::Equal => {
                 let expr = self.expression()?;
                 let assignment = Statement::Assignment(name.to_string(), expr);
-                self.consume(Token::Semicolon)?;
+                self.consume(&Token::Semicolon)?;
                 Ok(assignment)
             }
-            _ => Err(ParsingError::Unknown(*token.source())),
+            t => Err(ParsingError::MissingToken {
+                position: self.last_position(),
+                expected: Token::Equal,
+                actual: t.clone(),
+            }),
         }
     }
 
     fn function_call(&mut self, name: &str) -> Result<Statement, ParsingError> {
         let mut arguments = vec![];
-        self.consume(Token::LeftParen)?;
-        if let Some(Token::RightParen) = self.tokens.peek().map(|t| t.kind()) {
-            self.consume(Token::RightParen)?;
-            self.consume(Token::Semicolon)?;
+        self.consume(&Token::LeftParen)?;
+        if let Token::RightParen = self.peek() {
+            self.consume(&Token::RightParen)?;
+            self.consume(&Token::Semicolon)?;
             return Ok(Statement::FunctionCall(name.to_string(), arguments));
         }
         loop {
             let expr = self.expression()?;
             arguments.push(expr);
             let token = self.advance();
-            match token.kind() {
+            match token {
                 Token::Comma => continue,
                 Token::RightParen => break,
-                _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
+                _ => {
+                    return Err(ParsingError::MissingClosingParentheses(
+                        self.last_position(),
+                    ))
+                }
             }
         }
-        self.consume(Token::RightParen)?;
-        self.consume(Token::Semicolon)?;
+        self.consume(&Token::RightParen)?;
+        self.consume(&Token::Semicolon)?;
         Ok(Statement::FunctionCall(name.to_string(), arguments))
     }
 
@@ -86,7 +90,7 @@ where
         trace!("Parsing block statement");
         let mut statements = Vec::new();
         loop {
-            match self.peek().kind() {
+            match self.peek() {
                 Token::RightCurly | Token::EndOfFile => {
                     break;
                 }
@@ -94,7 +98,7 @@ where
             }
             statements.push(self.statement()?);
         }
-        self.consume(Token::RightCurly)?;
+        self.consume(&Token::RightCurly)?;
         Ok(Statement::Block(statements))
     }
 
@@ -102,22 +106,21 @@ where
         trace!("Parsing variable declaration");
         let token = self.advance();
         trace!("Variable declaration token: {:?}", token);
-        let name = match token.kind() {
-            Token::Identifier(name) => name,
+        let name = match token {
+            Token::Identifier(name) => name.clone(),
             _ => {
                 return Err(ParsingError::UnexpectedToken(
-                    token.kind().clone(),
-                    *token.source(),
+                    token.clone(),
+                    self.last_position(),
                 ))
             }
         };
 
-        trace!("Assigning variable: {:?}", token);
         if self.advance_if(Token::Equal) {
             let expr = self.expression()?;
-            Ok(Statement::Declaration(name.clone(), Some(expr)))
+            Ok(Statement::Declaration(name, Some(expr)))
         } else {
-            Ok(Statement::Declaration(name.clone(), None))
+            Ok(Statement::Declaration(name, None))
         }
     }
 
@@ -125,30 +128,30 @@ where
         trace!("Parsing function declaration");
         let token = self.advance();
         trace!("Function declaration token: {:?}", token);
-        let name = match token.kind() {
+        let name = match token {
             Token::Identifier(name) => name,
             _ => {
                 return Err(ParsingError::UnexpectedToken(
-                    token.kind().clone(),
-                    *token.source(),
+                    token.clone(),
+                    self.last_position(),
                 ))
             }
         };
 
         let mut parameters = vec![];
-        self.consume(Token::LeftParen)?;
-        if let Token::Identifier(name) = self.peek().kind() {
+        self.consume(&Token::LeftParen)?;
+        if let Token::Identifier(name) = self.peek() {
             parameters.push(name.clone());
             self.advance();
         }
         while self.advance_if(Token::Comma) {
-            if let Token::Identifier(name) = self.peek().kind() {
+            if let Token::Identifier(name) = self.peek() {
                 parameters.push(name.clone());
                 self.advance();
             }
         }
-        self.consume(Token::RightParen)?;
-        self.consume(Token::LeftCurly)?;
+        self.consume(&Token::RightParen)?;
+        self.consume(&Token::LeftCurly)?;
         let body = self.block_statement()?;
         Ok(Statement::FunctionDeclaration(
             name.clone(),
@@ -159,9 +162,9 @@ where
 
     fn if_statement(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing if statement");
-        self.consume(Token::LeftParen)?;
+        self.consume(&Token::LeftParen)?;
         let condition = self.expression()?;
-        self.consume(Token::RightParen)?;
+        self.consume(&Token::RightParen)?;
         let then_branch = self.statement()?;
         let else_branch = if self.advance_if(Token::Else) {
             Some(Box::new(self.statement()?))
@@ -173,9 +176,9 @@ where
 
     fn while_statement(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing while statement");
-        self.consume(Token::LeftParen)?;
+        self.consume(&Token::LeftParen)?;
         let condition = self.expression()?;
-        self.consume(Token::RightParen)?;
+        self.consume(&Token::RightParen)?;
         let body = self.statement()?;
         Ok(Statement::While(condition, Box::new(body)))
     }

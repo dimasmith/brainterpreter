@@ -17,57 +17,66 @@ where
         trace!("Parsing expression (min_binding: {})", min_binding);
         let token = self.advance();
         trace!("Parsing expression (token: {:?})", token);
-        let mut lhs = match token.kind() {
-            Token::Number(n) => Expression::number(*n),
+        let mut lhs = match token {
+            Token::Number(n) => Expression::number(n),
             Token::Nil => Expression::Nil,
             Token::True => Expression::BooleanLiteral(true),
             Token::False => Expression::BooleanLiteral(false),
             Token::StringLiteral(s) => Expression::StringLiteral(s.clone()),
             Token::Minus => {
                 let binding = self
-                    .prefix_binding(token.clone())
-                    .ok_or(ParsingError::UnknownOperation(*token.source()))?;
+                    .prefix_binding(&token)
+                    .ok_or(ParsingError::UnknownOperation(self.last_position()))?;
                 let rhs = self.expression_bp(binding)?;
                 Expression::unary(UnaryOperator::Negate, rhs)
             }
             Token::Bang => {
                 let binding = self
-                    .prefix_binding(token.clone())
-                    .ok_or(ParsingError::UnknownOperation(*token.source()))?;
+                    .prefix_binding(&token)
+                    .ok_or(ParsingError::UnknownOperation(self.last_position()))?;
                 let rhs = self.expression_bp(binding)?;
                 Expression::unary(UnaryOperator::Not, rhs)
             }
-            Token::Identifier(name) => self.variable_expression(name)?,
+            Token::Identifier(name) => self.variable_expression(&name)?,
             Token::LeftParen => {
                 let expr = self.expression_bp(0)?;
-                match self.advance().kind() {
+                match self.advance() {
                     Token::RightParen => expr,
-                    _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
+                    _ => {
+                        return Err(ParsingError::MissingClosingParentheses(
+                            self.last_position(),
+                        ))
+                    }
                 }
             }
-            t => return Err(ParsingError::UnexpectedToken(t.clone(), *token.source())),
+            t => {
+                return Err(ParsingError::UnexpectedToken(
+                    t.clone(),
+                    self.last_position(),
+                ))
+            }
         };
 
         loop {
-            let mut token = self.peek();
+            let mut token = self.peek().clone();
 
             if let Some(left_binding) = self.postfix_binding(&token) {
                 if left_binding < min_binding {
                     break;
                 }
-                if let Token::LeftSquare = token.kind() {
+                if let Token::LeftSquare = token {
                     self.advance();
                     let index = self.expression_bp(0)?;
-                    self.consume(Token::RightSquare)?;
+                    self.consume(&Token::RightSquare)?;
                     lhs = Expression::Index(Box::new(lhs), Box::new(index));
-                    token = self.peek();
-                } else if let Token::LeftParen = token.kind() {
+                    token = self.peek().clone();
+                } else if let Token::LeftParen = token {
                     match lhs {
                         Expression::Variable(name) => {
                             lhs = self.function_call_expression(&name)?;
-                            token = self.peek();
+                            token = self.peek().clone();
                         }
-                        _ => return Err(ParsingError::InvalidCall(*token.source())),
+                        _ => return Err(ParsingError::InvalidCall(self.last_position())),
                     }
                 }
             }
@@ -78,11 +87,11 @@ where
                 }
                 let op = self
                     .binary_operator()
-                    .ok_or_else(|| ParsingError::Unknown(*token.source()))?;
+                    .ok_or_else(|| ParsingError::Unknown(self.last_position()))?;
                 self.advance();
                 let rhs = self
                     .expression_bp(right_binding)
-                    .map_err(|_| ParsingError::MissingOperand(*token.source()))?;
+                    .map_err(|_| ParsingError::MissingOperand(self.last_position()))?;
 
                 lhs = Expression::binary(op, lhs, rhs);
 
@@ -103,27 +112,30 @@ where
     fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
         trace!("Parsing function call expression (name: {})", name);
         let mut arguments = vec![];
-        self.consume(Token::LeftParen)?;
+        self.consume(&Token::LeftParen)?;
         if let Some(Token::RightParen) = self.tokens.peek().map(|t| t.kind()) {
-            self.consume(Token::RightParen)?;
+            self.consume(&Token::RightParen)?;
             return Ok(Expression::Call(name.to_string(), arguments));
         }
         loop {
             let expr = self.expression_bp(0)?;
             arguments.push(expr);
             let token = self.advance();
-            match token.kind() {
+            match token {
                 Token::Comma => continue,
                 Token::RightParen => break,
-                _ => return Err(ParsingError::MissingClosingParentheses(*token.source())),
+                _ => {
+                    return Err(ParsingError::MissingClosingParentheses(
+                        self.last_position(),
+                    ))
+                }
             }
         }
         Ok(Expression::Call(name.to_string(), arguments))
     }
 
     fn binary_operator(&mut self) -> Option<BinaryOperator> {
-        let token = self.peek();
-        match token.kind() {
+        match self.peek() {
             Token::Plus => Some(BinaryOperator::Add),
             Token::Minus => Some(BinaryOperator::Sub),
             Token::Star => Some(BinaryOperator::Mul),
@@ -139,8 +151,8 @@ where
         }
     }
 
-    fn infix_binding(&self, token: &SourceToken) -> Option<(u8, u8)> {
-        match token.kind() {
+    fn infix_binding(&self, token: &Token) -> Option<(u8, u8)> {
+        match token {
             Token::Plus | Token::Minus => Precedence::Term.infix_binding(),
             Token::Star | Token::Slash => Precedence::Factor.infix_binding(),
             Token::EqualEqual | Token::BangEqual => Precedence::Equality.infix_binding(),
@@ -151,16 +163,16 @@ where
         }
     }
 
-    fn postfix_binding(&self, token: &SourceToken) -> Option<u8> {
-        match token.kind() {
+    fn postfix_binding(&self, token: &Token) -> Option<u8> {
+        match token {
             Token::LeftSquare => Precedence::Index.postfix_binding(),
             Token::LeftParen => Precedence::Call.postfix_binding(),
             _ => None,
         }
     }
 
-    fn prefix_binding(&self, token: SourceToken) -> Option<u8> {
-        match token.kind() {
+    fn prefix_binding(&self, token: &Token) -> Option<u8> {
+        match token {
             Token::Minus | Token::Bang => Precedence::Unary.prefix_binding(),
             _ => None,
         }

@@ -2,7 +2,6 @@
 
 use std::iter::Peekable;
 
-use log::trace;
 use thiserror::Error;
 
 use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
