@@ -36,23 +36,22 @@ pub enum Expression {
     StringLiteral(String),
     /// Access to array-like variable element by index
     Index(Box<Expression>, Box<Expression>),
-    Variable(String),
+    ReadVariable(String),
+    AssignVariable(String, Box<Expression>),
     Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),
-    VariableAssignment(String, Box<Expression>),
 }
 
 /// Represents a statement in the l9 language.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Expression(Expression),
+    Variable(String, Option<Expression>),
+    Function(String, Vec<String>, Vec<Statement>),
     Print(Expression),
     Block(Vec<Statement>),
-    Declaration(String, Option<Expression>),
-    FunctionDeclaration(String, Vec<String>, Vec<Statement>),
-    FunctionCall(String, Vec<Expression>),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
     While(Expression, Box<Statement>),
     Return(Expression),

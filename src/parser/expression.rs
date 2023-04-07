@@ -72,7 +72,7 @@ where
                     token = self.peek().clone();
                 } else if let Token::LeftParen = token {
                     match lhs {
-                        Expression::Variable(name) => {
+                        Expression::ReadVariable(name) => {
                             lhs = self.function_call_expression(&name)?;
                             token = self.peek().clone();
                         }
@@ -88,9 +88,9 @@ where
                 if let Token::Equal = token {
                     self.advance();
                     match lhs {
-                        Expression::Variable(name) => {
+                        Expression::ReadVariable(name) => {
                             let rhs = self.expression_bp(right_binding)?;
-                            lhs = Expression::VariableAssignment(name, Box::new(rhs));
+                            lhs = Expression::AssignVariable(name, Box::new(rhs));
                             continue;
                         }
                         _ => return Err(ParsingError::InvalidAssignment(self.last_position())),
@@ -117,7 +117,7 @@ where
 
     fn variable_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
         trace!("Parsing variable expression (name: {})", name);
-        Ok(Expression::Variable(name.to_string()))
+        Ok(Expression::ReadVariable(name.to_string()))
     }
 
     fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
@@ -307,7 +307,7 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::VariableAssignment("a".to_string(), Box::new(Expression::number(1)))
+            Expression::AssignVariable("a".to_string(), Box::new(Expression::number(1)))
         );
     }
 

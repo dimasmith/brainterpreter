@@ -22,21 +22,13 @@ where
             }
             Token::LeftCurly => self.block_statement(),
             Token::Let => {
-                let declaration = self.variable_declaration();
-                self.consume(&Token::Semicolon)?;
+                let declaration = self.variable_definition();
+
                 declaration
             }
-            Token::Fun => self.function_declaration(),
+            Token::Fun => self.function_definition(),
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
-            Token::Identifier(name) => {
-                if let Token::LeftParen = self.peek() {
-                    self.function_call(&name)
-                } else {
-                    // &self.advance()
-                    self.variable_assignment(&name)
-                }
-            }
             Token::Return => {
                 let expr = self.expression()?;
                 self.consume(&Token::Semicolon)?;
@@ -46,91 +38,32 @@ where
         }
     }
 
-    fn variable_assignment(&mut self, name: &str) -> Result<Statement, ParsingError> {
-        match self.advance() {
-            Token::Equal => {
-                let expr = self.expression()?;
-                let assignment = Statement::Expression(Expression::VariableAssignment(
-                    name.to_string(),
-                    Box::new(expr),
-                ));
-                self.consume(&Token::Semicolon)?;
-                Ok(assignment)
-            }
-            t => Err(ParsingError::MissingToken {
-                position: self.last_position(),
-                expected: Token::Equal,
-                actual: t.clone(),
-            }),
-        }
-    }
-
-    fn function_call(&mut self, name: &str) -> Result<Statement, ParsingError> {
-        let mut arguments = vec![];
-        self.consume(&Token::LeftParen)?;
-        if let Token::RightParen = self.peek() {
-            self.consume(&Token::RightParen)?;
-            self.consume(&Token::Semicolon)?;
-            return Ok(Statement::FunctionCall(name.to_string(), arguments));
-        }
-        loop {
-            let expr = self.expression()?;
-            arguments.push(expr);
-            let token = self.advance();
-            match token {
-                Token::Comma => continue,
-                Token::RightParen => break,
-                _ => {
-                    return Err(ParsingError::MissingClosingParentheses(
-                        self.last_position(),
-                    ))
-                }
-            }
-        }
-        self.consume(&Token::RightParen)?;
-        self.consume(&Token::Semicolon)?;
-        Ok(Statement::FunctionCall(name.to_string(), arguments))
-    }
-
-    fn block_statement(&mut self) -> Result<Statement, ParsingError> {
-        trace!("Parsing block statement");
-        let mut statements = Vec::new();
-        loop {
-            match self.peek() {
-                Token::RightCurly | Token::EndOfFile => {
-                    break;
-                }
-                _ => {}
-            }
-            statements.push(self.statement()?);
-        }
-        self.consume(&Token::RightCurly)?;
-        Ok(Statement::Block(statements))
-    }
-
-    fn variable_declaration(&mut self) -> Result<Statement, ParsingError> {
+    fn variable_definition(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing variable declaration");
         let token = self.advance();
         trace!("Variable declaration token: {:?}", token);
         let name = match token {
             Token::Identifier(name) => name.clone(),
             _ => {
-                return Err(ParsingError::UnexpectedToken(
-                    token.clone(),
-                    self.last_position(),
-                ))
+                return Err(ParsingError::MissingToken {
+                    position: self.last_position(),
+                    expected: Token::Identifier("identifier".to_string()),
+                    actual: token.clone(),
+                })
             }
         };
 
-        if self.advance_if(Token::Equal) {
+        let def = if self.advance_if(Token::Equal) {
             let expr = self.expression()?;
-            Ok(Statement::Declaration(name, Some(expr)))
+            Ok(Statement::Variable(name, Some(expr)))
         } else {
-            Ok(Statement::Declaration(name, None))
-        }
+            Ok(Statement::Variable(name, None))
+        };
+        self.consume(&Token::Semicolon)?;
+        def
     }
 
-    fn function_declaration(&mut self) -> Result<Statement, ParsingError> {
+    fn function_definition(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing function declaration");
         let token = self.advance();
         trace!("Function declaration token: {:?}", token);
@@ -159,11 +92,23 @@ where
         self.consume(&Token::RightParen)?;
         self.consume(&Token::LeftCurly)?;
         let body = self.block_statement()?;
-        Ok(Statement::FunctionDeclaration(
-            name.clone(),
-            parameters,
-            vec![body],
-        ))
+        Ok(Statement::Function(name.clone(), parameters, vec![body]))
+    }
+
+    fn block_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing block statement");
+        let mut statements = Vec::new();
+        loop {
+            match self.peek() {
+                Token::RightCurly | Token::EndOfFile => {
+                    break;
+                }
+                _ => {}
+            }
+            statements.push(self.statement()?);
+        }
+        self.consume(&Token::RightCurly)?;
+        Ok(Statement::Block(statements))
     }
 
     fn if_statement(&mut self) -> Result<Statement, ParsingError> {
@@ -208,7 +153,7 @@ mod tests {
     fn test_variable_declaration() {
         let mut parser = Parser::new(Lexer::new("let a;"));
         let statement = parser.statement().unwrap();
-        assert_eq!(statement, Statement::Declaration("a".to_string(), None));
+        assert_eq!(statement, Statement::Variable("a".to_string(), None));
     }
 
     #[test]
@@ -217,7 +162,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Expression(Expression::VariableAssignment(
+            Statement::Expression(Expression::AssignVariable(
                 "a".to_string(),
                 Box::new(Expression::number(1.0))
             ))
@@ -230,7 +175,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Declaration("a".to_string(), Some(Expression::NumberLiteral(1.0)))
+            Statement::Variable("a".to_string(), Some(Expression::NumberLiteral(1.0)))
         );
     }
 
@@ -240,7 +185,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::FunctionDeclaration("a".to_string(), vec![], vec![Statement::Block(vec![])])
+            Statement::Function("a".to_string(), vec![], vec![Statement::Block(vec![])])
         );
     }
 
@@ -250,7 +195,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::FunctionDeclaration(
+            Statement::Function(
                 "a".to_string(),
                 vec!["b".to_string(), "c".to_string()],
                 vec![Statement::Block(vec![])]

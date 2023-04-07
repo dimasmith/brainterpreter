@@ -53,7 +53,7 @@ impl Compiler {
                 self.chunk.add_op(Op::Print);
                 Ok(())
             }
-            Statement::Declaration(name, value) => self.variable_declaration(name, value),
+            Statement::Variable(name, value) => self.variable_declaration(name, value),
             Statement::Block(statements) => {
                 self.block(statements)?;
                 Ok(())
@@ -62,10 +62,9 @@ impl Compiler {
                 self.if_statement(condition, then, otherwise)
             }
             Statement::While(condition, body) => self.while_statement(condition, body),
-            Statement::FunctionDeclaration(name, params, body) => {
+            Statement::Function(name, params, body) => {
                 self.function_declaration(name, params, body)
             }
-            Statement::FunctionCall(name, args) => self.function_call(name, args),
             Statement::Return(expr) => self.return_statement(expr),
         }
     }
@@ -143,7 +142,7 @@ impl Compiler {
             Expression::BooleanLiteral(b) => {
                 self.chunk.add_op(Op::ConstBool(*b));
             }
-            Expression::VariableAssignment(name, expr) => {
+            Expression::AssignVariable(name, expr) => {
                 self.variable_assignment(name, expr)?;
             }
             Expression::BinaryOperation(op, a, b) => {
@@ -188,7 +187,7 @@ impl Compiler {
                     }
                 }
             }
-            Expression::Variable(name) => self.load_variable(name),
+            Expression::ReadVariable(name) => self.load_variable(name),
             Expression::Call(name, args) => self.function_call(name, args)?,
             Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
@@ -320,8 +319,8 @@ mod tests {
 
     #[test]
     fn assign_global_variable() {
-        let declare = Statement::Declaration("a".to_string(), None);
-        let assign = Statement::Expression(Expression::VariableAssignment(
+        let declare = Statement::Variable("a".to_string(), None);
+        let assign = Statement::Expression(Expression::AssignVariable(
             "a".to_string(),
             Box::new(Expression::number(42)),
         ));
@@ -376,8 +375,8 @@ mod tests {
     #[test]
     fn compile_locals() {
         let block_assignments = vec![
-            Statement::Declaration("a".to_string(), Some(Expression::number(1.0))),
-            Statement::Declaration("b".to_string(), Some(Expression::number(2.0))),
+            Statement::Variable("a".to_string(), Some(Expression::number(1.0))),
+            Statement::Variable("b".to_string(), Some(Expression::number(2.0))),
         ];
         let block = Statement::Block(block_assignments);
         let mut compiler = Compiler::default();
@@ -400,9 +399,11 @@ mod tests {
 
     #[test]
     fn shadow_initialization() {
-        let global = Statement::Declaration("a".to_string(), Some(Expression::number(1.0)));
-        let local =
-            Statement::Declaration("a".to_string(), Some(Expression::Variable("a".to_string())));
+        let global = Statement::Variable("a".to_string(), Some(Expression::number(1.0)));
+        let local = Statement::Variable(
+            "a".to_string(),
+            Some(Expression::ReadVariable("a".to_string())),
+        );
         let block = Statement::Block(vec![local]);
         let mut compiler = Compiler::default();
 
