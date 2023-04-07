@@ -41,6 +41,7 @@ pub enum Expression {
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
     Cmp(Box<Expression>, Box<Expression>),
+    VariableAssignment(String, Box<Expression>),
 }
 
 /// Represents a statement in the l9 language.
@@ -52,7 +53,6 @@ pub enum Statement {
     Declaration(String, Option<Expression>),
     FunctionDeclaration(String, Vec<String>, Vec<Statement>),
     FunctionCall(String, Vec<Expression>),
-    Assignment(String, Expression),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
     While(Expression, Box<Statement>),
     Return(Expression),

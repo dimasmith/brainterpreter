@@ -68,6 +68,7 @@ impl Vm {
     pub fn run_script(&mut self, script: Function) -> Result<(), VmError> {
         let call_frame = CallFrame::new(script.chunk().clone(), 0);
         self.frames.push(call_frame);
+        self.stack.push(ValueType::Function(Box::new(script)));
         self.run()?;
         Ok(())
     }
@@ -406,10 +407,6 @@ impl VmStack {
         } else {
             Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
         }
-    }
-
-    fn top(&self) -> usize {
-        self.stack.len()
     }
 }
 

@@ -1,4 +1,5 @@
 //! Compiles AST into virtual machine instructions
+use log::trace;
 use thiserror::Error;
 
 use locals::Locals;
@@ -29,7 +30,11 @@ impl Compiler {
     pub fn compile_script(&mut self, program: Program) -> Result<Function, CompileError> {
         let mut script_compiler = Compiler::default();
         let chunk = script_compiler.compile_program(program)?;
-        Ok(Function::script(chunk))
+        let script = Function::script(chunk);
+        self.chunk
+            .add_constant(ValueType::Function(Box::new(script.clone())));
+        self.chunk.add_op(Op::Call(0));
+        Ok(script)
     }
 
     pub fn compile_program(&mut self, program: Program) -> Result<Chunk, CompileError> {
@@ -40,6 +45,7 @@ impl Compiler {
     }
 
     fn statement(&mut self, ast: &Statement) -> CompilationResult {
+        trace!("Compiling statement: {:?}", ast);
         match ast {
             Statement::Expression(expr) => self.expression(expr),
             Statement::Print(expr) => {
@@ -48,7 +54,6 @@ impl Compiler {
                 Ok(())
             }
             Statement::Declaration(name, value) => self.variable_declaration(name, value),
-            Statement::Assignment(name, expr) => self.variable_assignment(name, expr),
             Statement::Block(statements) => {
                 self.block(statements)?;
                 Ok(())
@@ -137,6 +142,9 @@ impl Compiler {
             }
             Expression::BooleanLiteral(b) => {
                 self.chunk.add_op(Op::ConstBool(*b));
+            }
+            Expression::VariableAssignment(name, expr) => {
+                self.variable_assignment(name, expr)?;
             }
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
@@ -275,13 +283,13 @@ impl Compiler {
         let mut function_compiler = Compiler::default();
         function_compiler.begin_scope();
         for param in params {
-            function_compiler.declare_variable(param);
+            function_compiler.declare_variable(param)?;
         }
         let function_program = Program::new(body.clone());
         let mut chunk = function_compiler.compile_program(function_program)?;
         chunk.add_op(Op::Nil);
         chunk.add_op(Op::Return);
-        let function = Ok(Function::new(name.to_string(), chunk, params.len()))?;
+        let function = Function::new(name.to_string(), chunk, params.len());
         let n = self
             .chunk
             .add_constant(ValueType::Function(Box::new(function)));
@@ -309,6 +317,30 @@ impl Compiler {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assign_global_variable() {
+        let declare = Statement::Declaration("a".to_string(), None);
+        let assign = Statement::Expression(Expression::VariableAssignment(
+            "a".to_string(),
+            Box::new(Expression::number(42)),
+        ));
+        let program = Program::new(vec![declare, assign]);
+        let mut compiler = Compiler::default();
+
+        let script = compiler.compile_script(program).unwrap();
+        let ops: Vec<&Op> = script.chunk().iter().collect();
+
+        assert_eq!(
+            ops,
+            vec![
+                &Op::Nil,
+                &Op::StoreGlobal("a".to_string()),
+                &Op::ConstFloat(42.0),
+                &Op::StoreGlobal("a".to_string())
+            ]
+        );
+    }
 
     #[test]
     fn compile_number_literal() {

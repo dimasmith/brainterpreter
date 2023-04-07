@@ -1,6 +1,6 @@
 use log::trace;
 
-use crate::ast::Statement;
+use crate::ast::{Expression, Statement};
 use crate::lexer::token::Token;
 use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
@@ -10,6 +10,9 @@ where
     T: Iterator<Item = SourceToken>,
 {
     pub fn statement(&mut self) -> Result<Statement, ParsingError> {
+        if let Token::Identifier(_) = self.peek() {
+            return self.expression_statement();
+        }
         match self.advance() {
             Token::Print => {
                 trace!("Parsing print statement");
@@ -27,7 +30,7 @@ where
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
             Token::Identifier(name) => {
-                if let Some(Token::LeftParen) = self.tokens.peek().map(|t| t.kind()) {
+                if let Token::LeftParen = self.peek() {
                     self.function_call(&name)
                 } else {
                     // &self.advance()
@@ -47,7 +50,10 @@ where
         match self.advance() {
             Token::Equal => {
                 let expr = self.expression()?;
-                let assignment = Statement::Assignment(name.to_string(), expr);
+                let assignment = Statement::Expression(Expression::VariableAssignment(
+                    name.to_string(),
+                    Box::new(expr),
+                ));
                 self.consume(&Token::Semicolon)?;
                 Ok(assignment)
             }
@@ -182,13 +188,19 @@ where
         let body = self.statement()?;
         Ok(Statement::While(condition, Box::new(body)))
     }
+
+    fn expression_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing expression statement");
+        let expr = self.expression()?;
+        self.consume(&Token::Semicolon)?;
+        Ok(Statement::Expression(expr))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::Expression;
-    use crate::lexer::token::Token;
-    use crate::lexer::{Lexer, SourceToken};
+    use crate::ast::{Expression, Statement};
+    use crate::lexer::Lexer;
 
     use super::*;
 
@@ -205,7 +217,10 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Assignment("a".to_string(), Expression::NumberLiteral(1.0))
+            Statement::Expression(Expression::VariableAssignment(
+                "a".to_string(),
+                Box::new(Expression::number(1.0))
+            ))
         );
     }
 

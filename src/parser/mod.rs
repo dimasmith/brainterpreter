@@ -4,7 +4,7 @@ use std::iter::Peekable;
 
 use thiserror::Error;
 
-use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
+use crate::ast::Program;
 use crate::lexer::token::Token;
 use crate::lexer::SourceToken;
 use crate::source::Position;
@@ -41,6 +41,8 @@ pub enum ParsingError {
     MissingClosingParentheses(Position),
     #[error("attempting to call uncallable object {0}")]
     InvalidCall(Position),
+    #[error("attempting to assign to non-assignable object {0}")]
+    InvalidAssignment(Position),
 }
 
 impl<T> Parser<T>

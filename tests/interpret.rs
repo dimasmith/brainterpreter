@@ -87,6 +87,40 @@ fn while_loop() {
     assert_eq!(out, "5\n4\n3\n2\n1\n100\n");
 }
 
+#[test]
+fn function_call() {
+    let source = r#"
+    fun add(a, b) {
+        return a + b;
+    }
+
+    print add(1, 2);
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "3\n");
+}
+
+#[test]
+fn assign_variables() {
+    let source = r#"
+    let a = 1;
+    print a;
+    let a = a + 1;
+    print a;
+    {
+        let a = 3;
+        print a;
+    }
+    print a;
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "1\n2\n3\n2\n");
+}
+
 pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let io = Rc::new(RefCell::new(vec![]));
     {

@@ -41,7 +41,7 @@ impl Function {
 
     pub fn script(chunk: Chunk) -> Self {
         Self {
-            name: "$script$".to_string(),
+            name: "$main$".to_string(),
             chunk,
             arity: 0,
         }

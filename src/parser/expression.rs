@@ -85,6 +85,17 @@ where
                 if left_binding < min_binding {
                     break;
                 }
+                if let Token::Equal = token {
+                    self.advance();
+                    match lhs {
+                        Expression::Variable(name) => {
+                            let rhs = self.expression_bp(right_binding)?;
+                            lhs = Expression::VariableAssignment(name, Box::new(rhs));
+                            continue;
+                        }
+                        _ => return Err(ParsingError::InvalidAssignment(self.last_position())),
+                    }
+                }
                 let op = self
                     .binary_operator()
                     .ok_or_else(|| ParsingError::Unknown(self.last_position()))?;
@@ -113,7 +124,7 @@ where
         trace!("Parsing function call expression (name: {})", name);
         let mut arguments = vec![];
         self.consume(&Token::LeftParen)?;
-        if let Some(Token::RightParen) = self.tokens.peek().map(|t| t.kind()) {
+        if let Token::RightParen = self.peek() {
             self.consume(&Token::RightParen)?;
             return Ok(Expression::Call(name.to_string(), arguments));
         }
@@ -296,11 +307,7 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::binary(
-                BinaryOperator::Assign,
-                Expression::Variable("a".to_string()),
-                Expression::number(1)
-            )
+            Expression::VariableAssignment("a".to_string(), Box::new(Expression::number(1)))
         );
     }
 
