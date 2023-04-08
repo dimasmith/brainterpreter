@@ -1,6 +1,6 @@
 [package]
 name = "l9_vm"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A virtual machine for the L9 programming language"
 authors = ["Dmytro Kovalchuk"]
