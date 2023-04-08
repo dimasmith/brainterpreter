@@ -327,12 +327,9 @@ impl Vm {
 
     fn offset_ip(&mut self, offset: isize) -> VmResult {
         let frame = self.frames.last_mut().unwrap();
-        let ip = frame.ip();
-        let new_ip = ip
-            .checked_add_signed(offset)
-            .ok_or(VmRuntimeError::IllegalJump(ip, offset))?;
-        frame.jump_to(new_ip);
-        Ok(())
+        frame
+            .jump(offset)
+            .map_err(|_| VmRuntimeError::IllegalJump(frame.ip(), offset))
     }
 
     fn advance(&mut self) -> Option<&Op> {

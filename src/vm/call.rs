@@ -1,3 +1,5 @@
+use std::num::IntErrorKind;
+
 use crate::vm::opcode::{Chunk, Op};
 
 #[derive(Debug)]
@@ -32,6 +34,15 @@ impl CallFrame {
 
     pub fn jump_to(&mut self, ip: usize) {
         self.ip = ip;
+    }
+
+    pub fn jump(&mut self, offset: isize) -> Result<(), IntErrorKind> {
+        let ip = self
+            .ip
+            .checked_add_signed(offset)
+            .ok_or(IntErrorKind::NegOverflow)?;
+        self.jump_to(ip);
+        Ok(())
     }
 
     pub fn chunk(&self) -> Chunk {
