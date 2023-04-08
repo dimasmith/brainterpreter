@@ -5,6 +5,8 @@ use std::rc::Rc;
 
 use thiserror::Error;
 
+use call::CallFrame;
+
 use crate::log::LoggingTracer;
 use crate::value::{Function, NativeFunction, TypeError, ValueType};
 use crate::vm::opcode::{Chunk, Op};
@@ -55,13 +57,6 @@ const STACK_SIZE: usize = 1024 * 1024;
 #[derive(Debug)]
 pub struct VmStack {
     stack: Vec<ValueType>,
-}
-
-#[derive(Debug)]
-struct CallFrame {
-    ip: usize,
-    chunk: Chunk,
-    stack_top: usize,
 }
 
 impl Vm {
@@ -210,13 +205,13 @@ impl Vm {
 
     fn write_local_variable(&mut self, offset: usize) -> VmResult {
         let value = self.stack.last().ok_or(VmRuntimeError::StackExhausted)?;
-        let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
+        let frame_offset = self.frames.last().unwrap().stack_top() + offset + 1;
         self.stack.set(frame_offset, value.clone())?;
         Ok(())
     }
 
     fn read_local_variable(&mut self, offset: usize) -> VmResult {
-        let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
+        let frame_offset = self.frames.last().unwrap().stack_top() + offset + 1;
         let value = self
             .stack
             .stack
@@ -325,18 +320,18 @@ impl Vm {
     fn ret(&mut self) -> VmResult {
         let result = self.stack.pop()?;
         let frame = self.frames.pop().ok_or(VmRuntimeError::StackExhausted)?;
-        self.stack.stack.truncate(frame.stack_top);
+        self.stack.stack.truncate(frame.stack_top());
         self.stack.push(result);
         Ok(())
     }
 
     fn offset_ip(&mut self, offset: isize) -> VmResult {
         let frame = self.frames.last_mut().unwrap();
-        let ip = frame.ip;
+        let ip = frame.ip();
         let new_ip = ip
             .checked_add_signed(offset)
             .ok_or(VmRuntimeError::IllegalJump(ip, offset))?;
-        frame.ip = new_ip;
+        frame.jump_to(new_ip);
         Ok(())
     }
 
@@ -345,12 +340,12 @@ impl Vm {
     }
 
     fn ip(&self) -> usize {
-        self.frames.last().map(|frame| frame.ip).unwrap_or(0)
+        self.frames.last().map(|frame| frame.ip()).unwrap_or(0)
     }
 
     fn chunk(&self) -> Chunk {
         let frame = self.frames.last().unwrap();
-        frame.chunk.clone()
+        frame.chunk()
     }
 
     fn trace_before(&self) {
