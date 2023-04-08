@@ -1,0 +1,89 @@
+let memSize = 32;
+let memory = [0; memSize];
+let ip = 0;
+let mem_p = 0;
+let source = "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.";
+// let source = "++++++++++[-].";
+
+fun inc() {
+	let mem_v = memory[mem_p];
+	mem_v = mem_v + 1;
+	if (mem_v > 255) {
+		mem_v = 0;
+	}
+	memory[mem_p] = mem_v;
+}
+
+fun dec() {
+	let mem_v = memory[mem_p];
+	mem_v = mem_v - 1;
+	if (mem_v < 0) {
+		mem_v = 255;
+	}
+	memory[mem_p] = mem_v;
+}
+
+fun mem_next() {
+	mem_p = mem_p + 1;
+}
+
+fun mem_prev() {
+	mem_p = mem_p - 1;
+}
+
+fun out() {
+	let c = memory[mem_p];
+	print as_string(as_char(c));
+}
+
+fun loop_forward() {
+	if (memory[mem_p] == 0) {
+		let nested_level = 1;
+		while (nested_level > 0) {
+		 	ip = ip + 1;
+			let c = source[ip];
+			if (c == "[") {
+				nested_level = nested_level + 1;
+			}
+			if (c == "]") {
+				nested_level = nested_level - 1;
+			}
+		}
+	}
+}
+
+fun loop_backward() {
+	if (memory[mem_p] != 0) {
+		let nested_level = 1;
+		while (nested_level > 0) {
+		 	ip = ip - 1;
+			let c = source[ip];
+			if (c == "]") {
+				nested_level = nested_level + 1;
+			}
+			if (c == "[") {
+				nested_level = nested_level - 1;
+			}
+		}
+	}
+}
+
+while (ip < len(source)) {
+	let c = source[ip];
+	if (c == "+") {
+		inc();
+	} else if (c == "-") {
+		dec();
+	} else if (c == "<") {
+		mem_prev();
+	} else if (c == ">") {
+		mem_next();
+	} else if (c == "[") {
+		loop_forward();
+	} else if (c == "]") {
+		loop_backward();
+	} else if (c == ".") {
+		out();
+	}
+	ip = ip + 1;
+}
