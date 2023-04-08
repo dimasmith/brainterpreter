@@ -83,7 +83,7 @@ where
         self.consume(&Token::RightParen)?;
         self.consume(&Token::LeftCurly)?;
         let body = self.block_statement()?;
-        Ok(Statement::Function(name, parameters, vec![body]))
+        Ok(Statement::Function(name, parameters, Box::new(body)))
     }
 
     fn block_statement(&mut self) -> Result<Statement, ParsingError> {
@@ -183,7 +183,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::function("a", &[], &[Statement::Block(vec![])])
+            Statement::function("a", &[], Statement::Block(vec![]))
         );
     }
 
@@ -193,7 +193,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::function("a", &["b", "c"], &[Statement::Block(vec![])])
+            Statement::function("a", &["b", "c"], Statement::Block(vec![]))
         );
     }
 

@@ -60,7 +60,7 @@ pub enum Expression {
 pub enum Statement {
     Expression(Expression),
     Variable(String, Option<Expression>),
-    Function(String, Vec<String>, Vec<Statement>),
+    Function(String, Vec<String>, Box<Statement>),
     Print(Expression),
     Block(Vec<Statement>),
     If(Expression, Box<Statement>, Option<Box<Statement>>),
@@ -105,9 +105,9 @@ impl Statement {
         Statement::Expression(expr)
     }
 
-    pub fn function(name: &str, args: &[&str], body: &[Statement]) -> Self {
+    pub fn function(name: &str, args: &[&str], body: Statement) -> Self {
         let args = args.iter().map(|s| s.to_string()).collect();
-        Statement::Function(name.to_string(), args, body.to_vec())
+        Statement::Function(name.to_string(), args, Box::new(body))
     }
 
     pub fn if_statement(condition: Expression, then_branch: Statement) -> Self {

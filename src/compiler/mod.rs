@@ -333,14 +333,14 @@ impl Compiler {
         &mut self,
         name: &str,
         params: &Vec<String>,
-        body: &[Statement],
+        body: &Statement,
     ) -> CompilationResult {
         let mut function_compiler = Compiler::default();
         function_compiler.begin_scope();
         for param in params {
             function_compiler.declare_variable(param)?;
         }
-        let function_program = Program::new(body.to_vec());
+        let function_program = Program::new(vec![body.clone()]);
         let mut chunk = function_compiler.compile_program(function_program)?;
         chunk.add_op(Op::Nil);
         chunk.add_op(Op::Return);
