@@ -5,12 +5,8 @@ use l9_vm::interpret;
 fn main() {
     env_logger::init();
     let source = r#"
-    let word = "Rust";    
-    let i = 0;
-    while (i < len(word)) {
-        print word[i];
-        i = i + 1;
-    }
+    let memory = [0;10];
+    print memory[0];
     "#;
     match interpret(source) {
         Ok(_) => {}

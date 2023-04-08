@@ -15,6 +15,7 @@ pub enum ValueType {
     Text(Box<String>),
     Function(Box<Function>),
     NativeFunction(Box<NativeFunction>),
+    Array(Box<Vec<ValueType>>),
 }
 
 #[derive(Debug, Error)]
@@ -66,19 +67,29 @@ impl ValueType {
                     s.chars().nth(idx).unwrap().to_string(),
                 )))
             }
+            ValueType::Array(arr) => {
+                let idx = self.index_in_bounds(index.index()?)?;
+                Ok(arr[idx].clone())
+            }
             _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
     }
 
     pub fn set(&self, index: &ValueType, value: ValueType) -> Result<ValueType, TypeError> {
-        match (self, value) {
+        match (self, &value) {
             (ValueType::Text(s), ValueType::Text(v)) => {
                 let idx = self.index_in_bounds(index.index()?)?;
                 let mut s = s.clone();
-                s.replace_range(idx..idx + 1, &v);
+                s.replace_range(idx..idx + 1, v);
                 Ok(ValueType::Text(s))
             }
-            (ValueType::Text(_), v) => Err(TypeError::UnsupportedArrayValueType(v)),
+            (ValueType::Array(arr), v) => {
+                let idx = self.index_in_bounds(index.index()?)?;
+                let mut arr = arr.clone();
+                arr[idx] = v.clone();
+                Ok(ValueType::Array(arr))
+            }
+            (ValueType::Text(_), _) => Err(TypeError::UnsupportedArrayValueType(value)),
             _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
     }
@@ -90,6 +101,15 @@ impl ValueType {
                     return Err(TypeError::IndexOutOfBounds {
                         index,
                         size: s.len(),
+                    });
+                }
+                Ok(index)
+            }
+            ValueType::Array(arr) => {
+                if index >= arr.len() {
+                    return Err(TypeError::IndexOutOfBounds {
+                        index,
+                        size: arr.len(),
                     });
                 }
                 Ok(index)
@@ -107,6 +127,7 @@ impl ValueType {
             ValueType::Text(s) => s.to_string(),
             ValueType::Function(func) => func.name.to_string(),
             ValueType::NativeFunction(func) => func.name.to_string(),
+            ValueType::Array(_) => "array".to_string(),
         }
     }
 }
@@ -121,6 +142,7 @@ impl Display for ValueType {
             ValueType::Text(s) => write!(f, "s:{}", s),
             ValueType::Function(func) => write!(f, "fn:{}", func.name),
             ValueType::NativeFunction(func) => write!(f, "<native>fn:{}", func.name),
+            ValueType::Array(_) => write!(f, "array"),
         }
     }
 }

@@ -45,6 +45,10 @@ pub enum Expression {
         target: Box<Expression>,
         value: Box<Expression>,
     },
+    Array {
+        initial: Box<Expression>,
+        size: Box<Expression>,
+    },
     Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),

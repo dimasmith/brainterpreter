@@ -49,6 +49,16 @@ where
                     }
                 }
             }
+            Token::LeftSquare => {
+                let initial = self.expression_bp(0)?;
+                self.consume(&Token::Semicolon)?;
+                let size = self.expression_bp(0)?;
+                self.consume(&Token::RightSquare)?;
+                Expression::Array {
+                    initial: Box::new(initial),
+                    size: Box::new(size),
+                }
+            }
             t => return Err(ParsingError::UnexpectedToken(t, self.last_position())),
         };
 
@@ -329,6 +339,19 @@ mod tests {
                 "foo".to_string(),
                 vec![Expression::number(1), Expression::number(2)]
             )
+        );
+    }
+
+    #[test]
+    fn array_initialisation() {
+        let mut parser = Parser::new(Lexer::new("[1; 5]"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::Array {
+                size: Box::new(Expression::number(5)),
+                initial: Box::new(Expression::number(1))
+            }
         );
     }
 }

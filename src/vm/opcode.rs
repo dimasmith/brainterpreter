@@ -49,6 +49,7 @@ pub enum Op {
     Jump(i32),
     /// Jump to the given offset if the top value of the stack is false.
     JumpIfFalse(i32),
+    Array,
 }
 
 impl Display for Op {
@@ -78,6 +79,7 @@ impl Display for Op {
             Op::JumpIfFalse(offset) => write!(f, "JZ {}", offset),
             Op::LoadIndex => write!(f, "LD_IDX"),
             Op::StoreIndex => write!(f, "ST_IDX"),
+            Op::Array => write!(f, "ARR"),
         }
     }
 }

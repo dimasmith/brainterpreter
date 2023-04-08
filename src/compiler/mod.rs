@@ -162,6 +162,7 @@ impl Compiler {
             Expression::Assign { target, value } => {
                 self.assign(target, value)?;
             }
+            Expression::Array { initial, size } => self.initialize_array(initial, size)?,
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
                 self.expression(a)?;
@@ -226,6 +227,14 @@ impl Compiler {
                 self.chunk.add_op(Op::LoadIndex);
             }
         }
+        Ok(())
+    }
+
+    fn initialize_array(&mut self, initial: &Expression, size: &Expression) -> CompilationResult {
+        self.expression(size)?;
+        self.expression(initial)?;
+        self.chunk.add_op(Op::Array);
+
         Ok(())
     }
 

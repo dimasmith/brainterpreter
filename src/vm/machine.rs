@@ -81,6 +81,7 @@ impl Vm {
             self.trace_before();
             match op {
                 Op::Return => self.ret()?,
+                Op::Array => self.initialize_array()?,
                 Op::Call(arity) => self.call(arity)?,
                 Op::Const(n) => {
                     let value = self.constant(n)?;
@@ -137,7 +138,7 @@ impl Vm {
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
-            (Op::LoadIndex, ValueType::Text(_), ValueType::Number(_)) => value_a
+            (Op::LoadIndex, _, _) => value_a
                 .get(&value_b)
                 .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?,
             (Op::Not, _, _) => {
@@ -217,6 +218,12 @@ impl Vm {
                     .write_fmt(format_args!("{}\n", s))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
+            ValueType::Array(_) => {
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("array\n"))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+            }
         }
         Ok(())
     }
@@ -282,6 +289,15 @@ impl Vm {
             ValueType::NativeFunction(f) => self.call_native_function(f, arity),
             _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
         }
+    }
+
+    fn initialize_array(&mut self) -> Result<(), VmError> {
+        let initial_value = self.stack.pop()?;
+        let size = self.index()?;
+        let mut array = vec![];
+        array.resize(size, initial_value);
+        self.stack.push(ValueType::Array(Box::new(array)));
+        Ok(())
     }
 
     fn peek_value(&mut self, arity: usize) -> Result<&ValueType, VmError> {
@@ -390,6 +406,14 @@ impl Vm {
         chunk.constant(index).cloned().ok_or(VmError::RuntimeError(
             VmRuntimeError::UndefinedConstant(index),
         ))
+    }
+    fn index(&mut self) -> Result<usize, VmError> {
+        let value = self.stack.pop()?;
+        if let ValueType::Number(n) = value {
+            Ok(n as usize)
+        } else {
+            Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch))
+        }
     }
 }
 

@@ -189,6 +189,21 @@ fn report_number_of_characters() {
     assert_eq!(out, "Rust has 4 characters.\n");
 }
 
+#[test]
+fn number_array() {
+    let source = r#"
+    let memory = [0;10];
+    print memory[0];
+    memory[0] = 1;
+    print memory[0];
+    print memory[1];
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "0\n1\n0\n");
+}
+
 pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let io = Rc::new(RefCell::new(vec![]));
     {
