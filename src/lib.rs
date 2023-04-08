@@ -1,10 +1,11 @@
 //! Virtual machine to support running l9 toy programming language
 use std::error::Error;
 
+use vm::Vm;
+
 use crate::compiler::Compiler;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use crate::vm::machine::Vm;
 
 pub mod ast;
 pub mod compiler;

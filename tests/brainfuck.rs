@@ -6,7 +6,7 @@ use std::rc::Rc;
 use l9_vm::compiler::Compiler;
 use l9_vm::lexer::Lexer;
 use l9_vm::parser::Parser;
-use l9_vm::vm::machine::Vm;
+use l9_vm::vm::Vm;
 
 #[test]
 fn brainfuck_interpreter() {

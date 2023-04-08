@@ -2,8 +2,8 @@
 
 use std::fmt::Debug;
 
-use crate::vm::machine::VmStack;
 use crate::vm::opcode::Chunk;
+use crate::vm::VmStack;
 
 pub trait VmStepTrace: Debug {
     // traces execution before opcode is processed

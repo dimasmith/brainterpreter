@@ -2,8 +2,8 @@
 use log::debug;
 
 use crate::trace::VmStepTrace;
-use crate::vm::machine::VmStack;
 use crate::vm::opcode::Chunk;
+use crate::vm::VmStack;
 
 #[derive(Debug, Default)]
 pub struct LoggingTracer;
