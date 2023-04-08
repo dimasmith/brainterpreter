@@ -5,15 +5,17 @@ use crate::lexer::token::Token;
 use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
 
+type ParsingResult = Result<Expression, ParsingError>;
+
 impl<T> Parser<T>
 where
     T: Iterator<Item = SourceToken>,
 {
-    pub fn expression(&mut self) -> Result<Expression, ParsingError> {
+    pub fn expression(&mut self) -> ParsingResult {
         self.expression_bp(0)
     }
 
-    fn expression_bp(&mut self, min_binding: u8) -> Result<Expression, ParsingError> {
+    fn expression_bp(&mut self, min_binding: u8) -> ParsingResult {
         trace!("Parsing expression (min_binding: {})", min_binding);
         let token = self.advance();
         trace!("Parsing expression (token: {:?})", token);
@@ -23,100 +25,37 @@ where
             Token::True => Expression::BooleanLiteral(true),
             Token::False => Expression::BooleanLiteral(false),
             Token::StringLiteral(s) => Expression::StringLiteral(s),
-            Token::Minus => {
-                let binding = self
-                    .prefix_binding(&token)
-                    .ok_or(ParsingError::UnknownOperation(self.last_position()))?;
-                let rhs = self.expression_bp(binding)?;
-                Expression::unary(UnaryOperator::Negate, rhs)
-            }
-            Token::Bang => {
-                let binding = self
-                    .prefix_binding(&token)
-                    .ok_or(ParsingError::UnknownOperation(self.last_position()))?;
-                let rhs = self.expression_bp(binding)?;
-                Expression::unary(UnaryOperator::Not, rhs)
-            }
-            Token::Identifier(name) => self.variable_expression(&name)?,
-            Token::LeftParen => {
-                let expr = self.expression_bp(0)?;
-                match self.advance() {
-                    Token::RightParen => expr,
-                    _ => {
-                        return Err(ParsingError::MissingClosingParentheses(
-                            self.last_position(),
-                        ))
-                    }
-                }
-            }
-            Token::LeftSquare => {
-                let initial = self.expression_bp(0)?;
-                self.consume(&Token::Semicolon)?;
-                let size = self.expression_bp(0)?;
-                self.consume(&Token::RightSquare)?;
-                Expression::Array {
-                    initial: Box::new(initial),
-                    size: Box::new(size),
-                }
-            }
+            Token::Minus | Token::Bang => self.unary_operation(&token)?,
+            Token::Identifier(name) => Expression::Variable(name),
+            Token::LeftParen => self.grouping()?,
+            Token::LeftSquare => self.array_initialisation()?,
             t => return Err(ParsingError::UnexpectedToken(t, self.last_position())),
         };
 
         loop {
-            let mut token = self.peek().clone();
-
-            if let Some(left_binding) = self.postfix_binding(&token) {
+            if let Some(left_binding) = self.postfix_binding() {
                 if left_binding < min_binding {
                     break;
                 }
-                if let Token::LeftSquare = token {
-                    self.advance();
-                    let index = self.expression_bp(0)?;
-                    self.consume(&Token::RightSquare)?;
-                    lhs = Expression::Index {
-                        array: Box::new(lhs),
-                        index: Box::new(index),
-                    };
-                    token = self.peek().clone();
-                } else if let Token::LeftParen = token {
-                    match lhs {
-                        Expression::Variable(name) => {
-                            lhs = self.function_call_expression(&name)?;
-                            token = self.peek().clone();
-                        }
-                        _ => return Err(ParsingError::InvalidCall(self.last_position())),
-                    }
+                if self.advance_if(Token::LeftSquare) {
+                    lhs = self.index(lhs)?;
+                    continue;
+                }
+                if self.advance_if(Token::LeftParen) {
+                    lhs = self.call(lhs)?;
+                    continue;
                 }
             }
 
-            if let Some((left_binding, right_binding)) = self.infix_binding(&token) {
+            if let Some((left_binding, right_binding)) = self.infix_binding() {
                 if left_binding < min_binding {
                     break;
                 }
-                if let Token::Equal = token {
-                    self.advance();
-                    match &lhs {
-                        Expression::Variable(_) | Expression::Index { .. } => {
-                            let rhs = self.expression_bp(right_binding)?;
-                            lhs = Expression::Assign {
-                                target: Box::new(lhs.clone()),
-                                value: Box::new(rhs),
-                            };
-                            continue;
-                        }
-                        _ => return Err(ParsingError::InvalidAssignment(self.last_position())),
-                    }
+                if self.advance_if(Token::Equal) {
+                    lhs = self.assignment(lhs, right_binding)?;
+                    continue;
                 }
-                let op = self
-                    .binary_operator()
-                    .ok_or_else(|| ParsingError::Unknown(self.last_position()))?;
-                self.advance();
-                let rhs = self
-                    .expression_bp(right_binding)
-                    .map_err(|_| ParsingError::MissingOperand(self.last_position()))?;
-
-                lhs = Expression::binary(op, lhs, rhs);
-
+                lhs = self.binary_operation(lhs, right_binding)?;
                 continue;
             }
 
@@ -126,15 +65,80 @@ where
         Ok(lhs)
     }
 
-    fn variable_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
-        trace!("Parsing variable expression (name: {})", name);
-        Ok(Expression::Variable(name.to_string()))
+    fn grouping(&mut self) -> ParsingResult {
+        let expr = self.expression_bp(0)?;
+        self.consume(&Token::RightParen)?;
+        Ok(expr)
     }
 
-    fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
+    fn unary_operation(&mut self, token: &Token) -> ParsingResult {
+        let binding = self
+            .prefix_binding(token)
+            .ok_or(ParsingError::UnknownOperation(self.last_position()))?;
+        let rhs = self.expression_bp(binding)?;
+        let operator = match token {
+            Token::Minus => UnaryOperator::Negate,
+            Token::Bang => UnaryOperator::Not,
+            _ => return Err(ParsingError::UnknownOperation(self.last_position())),
+        };
+        Ok(Expression::unary(operator, rhs))
+    }
+
+    fn binary_operation(&mut self, lhs: Expression, right_binding: u8) -> ParsingResult {
+        let op = self
+            .binary_operator()
+            .ok_or_else(|| ParsingError::Unknown(self.last_position()))?;
+        self.advance();
+        let rhs = self
+            .expression_bp(right_binding)
+            .map_err(|_| ParsingError::MissingOperand(self.last_position()))?;
+
+        Ok(Expression::binary(op, lhs, rhs))
+    }
+
+    fn assignment(&mut self, lhs: Expression, right_binding: u8) -> ParsingResult {
+        match lhs {
+            Expression::Variable(_) | Expression::Index { .. } => {
+                let rhs = self.expression_bp(right_binding)?;
+                Ok(Expression::Assign {
+                    target: Box::new(lhs),
+                    value: Box::new(rhs),
+                })
+            }
+            _ => Err(ParsingError::InvalidAssignment(self.last_position())),
+        }
+    }
+
+    fn index(&mut self, lhs: Expression) -> ParsingResult {
+        let index = self.expression_bp(0)?;
+        self.consume(&Token::RightSquare)?;
+        Ok(Expression::Index {
+            array: Box::new(lhs),
+            index: Box::new(index),
+        })
+    }
+
+    fn array_initialisation(&mut self) -> ParsingResult {
+        let initial = self.expression_bp(0)?;
+        self.consume(&Token::Semicolon)?;
+        let size = self.expression_bp(0)?;
+        self.consume(&Token::RightSquare)?;
+        Ok(Expression::Array {
+            initial: Box::new(initial),
+            size: Box::new(size),
+        })
+    }
+
+    fn call(&mut self, lhs: Expression) -> ParsingResult {
+        match lhs {
+            Expression::Variable(name) => self.function_call(&name),
+            _ => Err(ParsingError::InvalidCall(self.last_position())),
+        }
+    }
+
+    fn function_call(&mut self, name: &str) -> ParsingResult {
         trace!("Parsing function call expression (name: {})", name);
         let mut arguments = vec![];
-        self.consume(&Token::LeftParen)?;
         if let Token::RightParen = self.peek() {
             self.consume(&Token::RightParen)?;
             return Ok(Expression::Call(name.to_string(), arguments));
@@ -173,8 +177,8 @@ where
         }
     }
 
-    fn infix_binding(&self, token: &Token) -> Option<(u8, u8)> {
-        match token {
+    fn infix_binding(&mut self) -> Option<(u8, u8)> {
+        match self.peek() {
             Token::Plus | Token::Minus => Precedence::Term.infix_binding(),
             Token::Star | Token::Slash => Precedence::Factor.infix_binding(),
             Token::EqualEqual | Token::BangEqual => Precedence::Equality.infix_binding(),
@@ -185,8 +189,8 @@ where
         }
     }
 
-    fn postfix_binding(&self, token: &Token) -> Option<u8> {
-        match token {
+    fn postfix_binding(&mut self) -> Option<u8> {
+        match self.peek() {
             Token::LeftSquare => Precedence::Index.postfix_binding(),
             Token::LeftParen => Precedence::Call.postfix_binding(),
             _ => None,
@@ -328,6 +332,19 @@ mod tests {
             Expression::Assign {
                 target: Box::new(Expression::Variable("a".to_string())),
                 value: Box::new(Expression::number(1))
+            }
+        );
+    }
+
+    #[test]
+    fn indexed_access() {
+        let mut parser = Parser::new(Lexer::new("a[1]"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::Index {
+                array: Box::new(Expression::variable("a")),
+                index: Box::new(Expression::number(1))
             }
         );
     }
