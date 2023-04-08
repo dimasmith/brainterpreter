@@ -1,11 +1,9 @@
 use crate::value::ValueType;
-use crate::vm::{VmError, VmRuntimeError, VmStack, STACK_SIZE};
+use crate::vm::{VmRuntimeError, VmStack, STACK_SIZE};
 
 impl VmStack {
-    pub fn pop(&mut self) -> Result<ValueType, VmError> {
-        self.stack
-            .pop()
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+    pub fn pop(&mut self) -> Result<ValueType, VmRuntimeError> {
+        self.stack.pop().ok_or(VmRuntimeError::StackExhausted)
     }
 
     pub fn get(&self, offset: usize) -> Option<&ValueType> {
@@ -32,12 +30,12 @@ impl VmStack {
         self.stack.push(value);
     }
 
-    pub fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmError> {
+    pub fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmRuntimeError> {
         if let Some(v) = self.stack.get_mut(offset) {
             *v = value;
             Ok(())
         } else {
-            Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+            Err(VmRuntimeError::StackExhausted)
         }
     }
 }

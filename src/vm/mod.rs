@@ -15,13 +15,7 @@ pub mod opcode;
 mod stack;
 pub mod trace;
 
-#[derive(Debug, Error)]
-pub enum VmError {
-    #[error("compilation failed")]
-    CompilationError,
-    #[error("runtime error")]
-    RuntimeError(VmRuntimeError),
-}
+type VmResult = Result<(), VmRuntimeError>;
 
 #[derive(Debug, Error, Default)]
 pub enum VmRuntimeError {
@@ -71,7 +65,7 @@ struct CallFrame {
 }
 
 impl Vm {
-    pub fn run_script(&mut self, script: Function) -> Result<(), VmError> {
+    pub fn run_script(&mut self, script: Function) -> VmResult {
         let call_frame = CallFrame::new(script.chunk().clone(), 0);
         self.frames.push(call_frame);
         self.stack.push(ValueType::Function(Box::new(script)));
@@ -79,7 +73,7 @@ impl Vm {
         Ok(())
     }
 
-    fn run(&mut self) -> Result<(), VmError> {
+    fn run(&mut self) -> VmResult {
         while let Some(op) = self.advance() {
             let op = op.clone();
             self.trace_before();
@@ -124,7 +118,7 @@ impl Vm {
         Ok(())
     }
 
-    fn binary_operation(&mut self, operation: Op) -> Result<(), VmError> {
+    fn binary_operation(&mut self, operation: Op) -> VmResult {
         let value_a = self.stack.pop()?;
         let value_b = self.stack.pop()?;
 
@@ -144,158 +138,121 @@ impl Vm {
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
             (Op::LoadIndex, _, _) => value_a
                 .get(&value_b)
-                .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?,
+                .map_err(|e| (VmRuntimeError::ArrayAccessError(e)))?,
             (Op::Not, _, _) => {
-                return Err(VmError::RuntimeError(VmRuntimeError::WrongOperation));
+                return Err(VmRuntimeError::WrongOperation);
             }
             _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+                return Err(VmRuntimeError::TypeMismatch);
             }
         };
         self.stack.push(result);
         Ok(())
     }
 
-    fn store_index(&mut self) -> Result<(), VmError> {
+    fn store_index(&mut self) -> VmResult {
         let value = self.stack.pop()?;
         let target = self.stack.pop()?;
         let idx = self.stack.pop()?;
         let new_value = target
             .set(&idx, value)
-            .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?;
+            .map_err(|e| (VmRuntimeError::ArrayAccessError(e)))?;
         self.stack.push(new_value);
         Ok(())
     }
 
-    fn not(&mut self) -> Result<(), VmError> {
+    fn not(&mut self) -> VmResult {
         let result = match self.stack.pop()? {
             ValueType::Bool(b) => ValueType::Bool(!b),
             _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+                return Err(VmRuntimeError::TypeMismatch);
             }
         };
         self.stack.push(result);
         Ok(())
     }
 
-    fn print(&mut self) -> Result<(), VmError> {
-        match self.stack.pop()? {
-            ValueType::Number(n) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}\n", n))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
-            ValueType::Bool(b) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}\n", b))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
-            ValueType::Address(a) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}\n", a))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
-            ValueType::Nil => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}\n", "nil"))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
+    fn print(&mut self) -> VmResult {
+        let line = match self.stack.pop()? {
+            ValueType::Number(n) => n.to_string(),
+            ValueType::Bool(b) => b.to_string(),
+            ValueType::Address(a) => a.to_string(),
+            ValueType::Nil => "nil".to_string(),
             ValueType::Function(f) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}:{}\n", "fun", f.name()))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+                format!("{}:{}", "fun", f.name())
             }
             ValueType::NativeFunction(f) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("<native>{}:{}\n", "fun", f.name()))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+                format!("[{}]:{}", "fun", f.name())
             }
-            ValueType::Text(s) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("{}\n", s))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
-            ValueType::Array(_) => {
-                self.out
-                    .borrow_mut()
-                    .write_fmt(format_args!("array\n"))
-                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
-            }
-        }
-        Ok(())
+            ValueType::Text(s) => *s,
+            ValueType::Array(a) => format_args!("[{}]\n", a.len()).to_string(),
+        };
+        self.out
+            .borrow_mut()
+            .write_fmt(format_args!("{}\n", line))
+            .map_err(|e| VmRuntimeError::IoError(e))
     }
 
-    fn store_global(&mut self, name: String) -> Result<(), VmError> {
+    fn store_global(&mut self, name: String) -> VmResult {
         let value = self.stack.pop()?;
         self.globals.insert(name, value);
         Ok(())
     }
 
-    fn load_global(&mut self, name: String) -> Result<(), VmError> {
-        let value = self.globals.get(&name).ok_or(VmError::RuntimeError(
-            VmRuntimeError::UndefinedVariable(name.clone()),
-        ))?;
+    fn load_global(&mut self, name: String) -> VmResult {
+        let value = self
+            .globals
+            .get(&name)
+            .ok_or(VmRuntimeError::UndefinedVariable(name.clone()))?;
         self.stack.push(value.clone());
         Ok(())
     }
 
-    fn write_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
-        let value = self
-            .stack
-            .last()
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
+    fn write_local_variable(&mut self, offset: usize) -> VmResult {
+        let value = self.stack.last().ok_or(VmRuntimeError::StackExhausted)?;
         let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
         self.stack.set(frame_offset, value.clone())?;
         Ok(())
     }
 
-    fn read_local_variable(&mut self, offset: usize) -> Result<(), VmError> {
+    fn read_local_variable(&mut self, offset: usize) -> VmResult {
         let frame_offset = self.frames.last().unwrap().stack_top + offset + 1;
         let value = self
             .stack
             .stack
             .get(frame_offset)
-            .ok_or(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
-                frame_offset.to_string(),
-            )))?;
+            .ok_or(VmRuntimeError::UndefinedVariable(frame_offset.to_string()))?;
         self.stack.push(value.clone());
         Ok(())
     }
 
-    fn jump(&mut self, offset: i32) -> Result<(), VmError> {
+    fn jump(&mut self, offset: i32) -> VmResult {
         self.offset_ip(offset as isize)?;
         Ok(())
     }
 
-    fn jump_if_false(&mut self, offset: i32) -> Result<(), VmError> {
+    fn jump_if_false(&mut self, offset: i32) -> VmResult {
         let value = self.stack.pop()?;
         if let ValueType::Bool(b) = value {
             if !b {
                 self.offset_ip(offset as isize)?;
             }
         } else {
-            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            return Err(VmRuntimeError::TypeMismatch);
         }
         Ok(())
     }
 
-    fn call(&mut self, arity: usize) -> Result<(), VmError> {
+    fn call(&mut self, arity: usize) -> VmResult {
         let value = self.peek_value(arity)?.clone();
         match &value {
             ValueType::Function(f) => self.call_function(f, arity),
             ValueType::NativeFunction(f) => self.call_native_function(f, arity),
-            _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+            _ => Err(VmRuntimeError::TypeMismatch),
         }
     }
 
-    fn initialize_array(&mut self) -> Result<(), VmError> {
+    fn initialize_array(&mut self) -> VmResult {
         let initial_value = self.stack.pop()?;
         let size = self.index()?;
         let mut array = vec![];
@@ -304,15 +261,13 @@ impl Vm {
         Ok(())
     }
 
-    fn peek_value(&mut self, arity: usize) -> Result<&ValueType, VmError> {
-        self.stack
-            .peek(arity)
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+    fn peek_value(&mut self, arity: usize) -> Result<&ValueType, VmRuntimeError> {
+        self.stack.peek(arity).ok_or(VmRuntimeError::StackExhausted)
     }
 
-    fn call_function(&mut self, function: &Function, arity: usize) -> Result<(), VmError> {
+    fn call_function(&mut self, function: &Function, arity: usize) -> VmResult {
         if arity != function.arity() {
-            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            return Err(VmRuntimeError::TypeMismatch);
         }
         let stack_top = self.stack.len() - function.arity() - 1;
         let frame = CallFrame::new(function.chunk().clone(), stack_top);
@@ -320,13 +275,9 @@ impl Vm {
         Ok(())
     }
 
-    fn call_native_function(
-        &mut self,
-        function: &NativeFunction,
-        arity: usize,
-    ) -> Result<(), VmError> {
+    fn call_native_function(&mut self, function: &NativeFunction, arity: usize) -> VmResult {
         if arity != function.arity() {
-            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            return Err(VmRuntimeError::TypeMismatch);
         }
         match function.name() {
             "len" => {
@@ -337,7 +288,7 @@ impl Vm {
                         self.stack.push(ValueType::Number(s.len() as f64));
                         Ok(())
                     }
-                    _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+                    _ => Err(VmRuntimeError::TypeMismatch),
                 }
             }
             "as_string" => {
@@ -356,12 +307,12 @@ impl Vm {
                         self.stack.push(ValueType::Text(Box::new(c.to_string())));
                         Ok(())
                     }
-                    _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+                    _ => Err(VmRuntimeError::TypeMismatch),
                 }
             }
-            _ => Err(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
+            _ => Err(VmRuntimeError::UndefinedVariable(
                 function.name().to_string(),
-            ))),
+            )),
         }
     }
 
@@ -371,23 +322,20 @@ impl Vm {
         self.globals.insert(name.to_string(), value);
     }
 
-    fn ret(&mut self) -> Result<(), VmError> {
+    fn ret(&mut self) -> VmResult {
         let result = self.stack.pop()?;
-        let frame = self
-            .frames
-            .pop()
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
+        let frame = self.frames.pop().ok_or(VmRuntimeError::StackExhausted)?;
         self.stack.stack.truncate(frame.stack_top);
         self.stack.push(result);
         Ok(())
     }
 
-    fn offset_ip(&mut self, offset: isize) -> Result<(), VmError> {
+    fn offset_ip(&mut self, offset: isize) -> VmResult {
         let frame = self.frames.last_mut().unwrap();
         let ip = frame.ip;
-        let new_ip = ip.checked_add_signed(offset).ok_or(VmError::RuntimeError(
-            VmRuntimeError::IllegalJump(ip, offset),
-        ))?;
+        let new_ip = ip
+            .checked_add_signed(offset)
+            .ok_or(VmRuntimeError::IllegalJump(ip, offset))?;
         frame.ip = new_ip;
         Ok(())
     }
@@ -417,18 +365,19 @@ impl Vm {
         }
     }
 
-    fn constant(&self, index: usize) -> Result<ValueType, VmError> {
+    fn constant(&self, index: usize) -> Result<ValueType, VmRuntimeError> {
         let chunk = self.chunk();
-        chunk.constant(index).cloned().ok_or(VmError::RuntimeError(
-            VmRuntimeError::UndefinedConstant(index),
-        ))
+        chunk
+            .constant(index)
+            .cloned()
+            .ok_or(VmRuntimeError::UndefinedConstant(index))
     }
-    fn index(&mut self) -> Result<usize, VmError> {
+    fn index(&mut self) -> Result<usize, VmRuntimeError> {
         let value = self.stack.pop()?;
         if let ValueType::Number(n) = value {
             Ok(n as usize)
         } else {
-            Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch))
+            Err(VmRuntimeError::TypeMismatch)
         }
     }
 }
