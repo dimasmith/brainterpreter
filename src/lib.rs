@@ -13,7 +13,6 @@ pub mod lexer;
 pub mod log;
 pub mod parser;
 pub mod source;
-pub mod trace;
 pub mod value;
 pub mod vm;
 

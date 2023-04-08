@@ -6,11 +6,14 @@ use std::rc::Rc;
 use thiserror::Error;
 
 use crate::log::LoggingTracer;
-use crate::trace::VmStepTrace;
 use crate::value::{Function, NativeFunction, TypeError, ValueType};
 use crate::vm::opcode::{Chunk, Op};
+use crate::vm::trace::VmStepTrace;
 
+mod call;
 pub mod opcode;
+mod stack;
+pub mod trace;
 
 #[derive(Debug, Error)]
 pub enum VmError {
@@ -456,97 +459,6 @@ impl Vm {
         Vm {
             out,
             ..Default::default()
-        }
-    }
-}
-
-impl VmStack {
-    pub fn pop(&mut self) -> Result<ValueType, VmError> {
-        self.stack
-            .pop()
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
-    }
-
-    pub fn get(&self, offset: usize) -> Option<&ValueType> {
-        self.stack.get(offset)
-    }
-
-    fn peek(&self, offset: usize) -> Option<&ValueType> {
-        self.stack.get(self.stack.len() - offset - 1)
-    }
-
-    fn last(&self) -> Option<&ValueType> {
-        self.stack.last()
-    }
-
-    pub fn len(&self) -> usize {
-        self.stack.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.stack.is_empty()
-    }
-
-    pub fn push(&mut self, value: ValueType) {
-        self.stack.push(value);
-    }
-
-    fn set(&mut self, offset: usize, value: ValueType) -> Result<(), VmError> {
-        if let Some(v) = self.stack.get_mut(offset) {
-            *v = value;
-            Ok(())
-        } else {
-            Err(VmError::RuntimeError(VmRuntimeError::StackExhausted))
-        }
-    }
-}
-
-impl CallFrame {
-    fn new(chunk: Chunk, stack_top: usize) -> Self {
-        CallFrame {
-            chunk,
-            ip: 0,
-            stack_top,
-        }
-    }
-
-    #[allow(dead_code)]
-    fn op(&self) -> Option<&Op> {
-        self.chunk.op(self.ip)
-    }
-
-    fn advance(&mut self) -> Option<&Op> {
-        let op = self.chunk.op(self.ip);
-        self.ip += 1;
-        op
-    }
-}
-
-impl Default for VmStack {
-    fn default() -> Self {
-        let stack = Vec::with_capacity(STACK_SIZE);
-        VmStack { stack }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    mod stack {
-        use crate::vm::VmStack;
-
-        use super::*;
-
-        #[test]
-        fn set_value_by_offset() {
-            let mut stack = VmStack::default();
-            stack.push(ValueType::Number(1.0));
-            stack.push(ValueType::Number(2.0));
-            stack.set(0, ValueType::Number(3.0)).unwrap();
-            stack.set(1, ValueType::Number(4.0)).unwrap();
-            assert_eq!(stack.stack[0], ValueType::Number(3.0));
-            assert_eq!(stack.stack[1], ValueType::Number(4.0));
         }
     }
 }
