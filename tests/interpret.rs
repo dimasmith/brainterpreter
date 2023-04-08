@@ -146,6 +146,35 @@ fn change_string_index() {
     assert_eq!(out, "Dust\n");
 }
 
+#[test]
+fn built_in_function() {
+    let source = r#"
+    let str = "Rust";
+    let l = len(str);
+    print l;
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "4\n");
+}
+
+#[test]
+fn iterate_over_characters() {
+    let source = r#"
+    let str = "Rust";
+    let i = 0;
+    while (i < len(str)) {
+        print str[i];
+        i = i + 1;
+    }
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "R\nu\ns\nt\n");
+}
+
 pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let io = Rc::new(RefCell::new(vec![]));
     {

@@ -14,6 +14,7 @@ pub enum ValueType {
     Address(usize),
     Text(Box<String>),
     Function(Box<Function>),
+    NativeFunction(Box<NativeFunction>),
 }
 
 #[derive(Debug, Error)]
@@ -34,6 +35,12 @@ pub enum TypeError {
 pub struct Function {
     name: String,
     chunk: Chunk,
+    arity: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct NativeFunction {
+    name: String,
     arity: usize,
 }
 
@@ -101,6 +108,7 @@ impl Display for ValueType {
             ValueType::Address(a) => write!(f, "*:{}", a),
             ValueType::Text(s) => write!(f, "s:{}", s),
             ValueType::Function(func) => write!(f, "fn:{}", func.name),
+            ValueType::NativeFunction(func) => write!(f, "<native>fn:{}", func.name),
         }
     }
 }
@@ -131,8 +139,28 @@ impl Function {
     }
 }
 
+impl NativeFunction {
+    pub fn new(name: String, arity: usize) -> Self {
+        Self { name, arity }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn arity(&self) -> usize {
+        self.arity
+    }
+}
+
 impl PartialEq<Function> for Function {
     fn eq(&self, other: &Function) -> bool {
+        self.name == other.name
+    }
+}
+
+impl PartialEq for NativeFunction {
+    fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }

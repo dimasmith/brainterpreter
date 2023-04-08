@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::log::LoggingTracer;
 use crate::trace::VmStepTrace;
-use crate::value::{Function, TypeError, ValueType};
+use crate::value::{Function, NativeFunction, TypeError, ValueType};
 use crate::vm::opcode::{Chunk, Op};
 
 #[derive(Debug, Error)]
@@ -81,7 +81,7 @@ impl Vm {
             self.trace_before();
             match op {
                 Op::Return => self.ret()?,
-                Op::Call(arity) => self.call_function(arity)?,
+                Op::Call(arity) => self.call(arity)?,
                 Op::Const(n) => {
                     let value = self.constant(n)?;
                     self.stack.push(value);
@@ -205,6 +205,12 @@ impl Vm {
                     .write_fmt(format_args!("{}:{}\n", "fun", f.name()))
                     .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
             }
+            ValueType::NativeFunction(f) => {
+                self.out
+                    .borrow_mut()
+                    .write_fmt(format_args!("<native>{}:{}\n", "fun", f.name()))
+                    .map_err(|e| VmError::RuntimeError(VmRuntimeError::IoError(e)))?;
+            }
             ValueType::Text(s) => {
                 self.out
                     .borrow_mut()
@@ -269,17 +275,22 @@ impl Vm {
         Ok(())
     }
 
-    fn call_function(&mut self, arity: usize) -> Result<(), VmError> {
-        let value = self
-            .stack
+    fn call(&mut self, arity: usize) -> Result<(), VmError> {
+        let value = self.peek_value(arity)?.clone();
+        match &value {
+            ValueType::Function(f) => self.call_function(f, arity),
+            ValueType::NativeFunction(f) => self.call_native_function(f, arity),
+            _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+        }
+    }
+
+    fn peek_value(&mut self, arity: usize) -> Result<&ValueType, VmError> {
+        self.stack
             .peek(arity)
-            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))?;
-        let function = match value {
-            ValueType::Function(f) => f,
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        };
+            .ok_or(VmError::RuntimeError(VmRuntimeError::StackExhausted))
+    }
+
+    fn call_function(&mut self, function: &Function, arity: usize) -> Result<(), VmError> {
         if arity != function.arity() {
             return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
         }
@@ -287,6 +298,38 @@ impl Vm {
         let frame = CallFrame::new(function.chunk().clone(), stack_top);
         self.frames.push(frame);
         Ok(())
+    }
+
+    fn call_native_function(
+        &mut self,
+        function: &NativeFunction,
+        arity: usize,
+    ) -> Result<(), VmError> {
+        if arity != function.arity() {
+            return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+        }
+        match function.name() {
+            "len" => {
+                let value = self.stack.pop()?;
+                match value {
+                    ValueType::Text(s) => {
+                        self.stack.pop()?;
+                        self.stack.push(ValueType::Number(s.len() as f64));
+                        Ok(())
+                    }
+                    _ => return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+                }
+            }
+            _ => Err(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
+                function.name().to_string(),
+            ))),
+        }
+    }
+
+    fn define_native_function(&mut self, name: &str, arity: usize) {
+        let native_function = NativeFunction::new(name.to_string(), arity);
+        let value = ValueType::NativeFunction(Box::new(native_function));
+        self.globals.insert(name.to_string(), value);
     }
 
     fn ret(&mut self) -> Result<(), VmError> {
@@ -347,13 +390,15 @@ impl Default for Vm {
     fn default() -> Self {
         let tracer = LoggingTracer::default();
         let out = stdout();
-        Vm {
+        let mut vm = Vm {
             stack: VmStack::default(),
             frames: Vec::new(),
             globals: HashMap::new(),
             trace: Some(Box::new(tracer)),
             out: Rc::new(RefCell::new(out)),
-        }
+        };
+        vm.define_native_function("len", 1);
+        vm
     }
 }
 
