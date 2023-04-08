@@ -260,8 +260,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_expression() {
-        let mut parser = Parser::new(Lexer::new("1 + 2 * 3"));
+    fn unary_operation() {
+        let mut parser = Parser::new(Lexer::new("-1"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::unary(UnaryOperator::Negate, Expression::number(1))
+        );
+    }
+
+    #[test]
+    fn binary_operation() {
+        let mut parser = Parser::new(Lexer::new("1 + 2"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::binary(
+                BinaryOperator::Add,
+                Expression::number(1),
+                Expression::number(2)
+            )
+        );
+    }
+
+    #[test]
+    fn operation_priorities() {
+        let mut parser = Parser::new(Lexer::new("1 + -2 * 3"));
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
@@ -270,7 +294,7 @@ mod tests {
                 Expression::number(1),
                 Expression::binary(
                     BinaryOperator::Mul,
-                    Expression::number(2),
+                    Expression::unary(UnaryOperator::Negate, Expression::number(2)),
                     Expression::number(3)
                 )
             )
@@ -278,7 +302,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expression_with_parentheses() {
+    fn grouping() {
         let mut parser = Parser::new(Lexer::new("(1 + 2) * 3"));
         let expr = parser.expression().unwrap();
         assert_eq!(
@@ -296,21 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expression_with_unary_operator() {
-        let mut parser = Parser::new(Lexer::new("-1 + 2"));
-        let expr = parser.expression().unwrap();
-        assert_eq!(
-            expr,
-            Expression::binary(
-                BinaryOperator::Add,
-                Expression::unary(UnaryOperator::Negate, Expression::number(1)),
-                Expression::number(2)
-            )
-        );
-    }
-
-    #[test]
-    fn assignment_expression() {
+    fn variable_assignment() {
         let mut parser = Parser::new(Lexer::new("a = 1"));
         let expr = parser.expression().unwrap();
         assert_eq!(
@@ -323,14 +333,30 @@ mod tests {
     }
 
     #[test]
-    fn test_expression_with_function_call() {
+    fn indexed_assignment() {
+        let mut parser = Parser::new(Lexer::new("a[1] = 2"));
+        let expr = parser.expression().unwrap();
+        assert_eq!(
+            expr,
+            Expression::Assign {
+                target: Box::new(Expression::Index {
+                    array: Box::new(Expression::variable("a")),
+                    index: Box::new(Expression::number(1))
+                }),
+                value: Box::new(Expression::number(2))
+            }
+        );
+    }
+
+    #[test]
+    fn function_call() {
         let mut parser = Parser::new(Lexer::new("foo()"));
         let expr = parser.expression().unwrap();
         assert_eq!(expr, Expression::Call("foo".to_string(), vec![]));
     }
 
     #[test]
-    fn test_expression_with_function_call_with_arguments() {
+    fn function_call_with_arguments() {
         let mut parser = Parser::new(Lexer::new("foo(1, 2)"));
         let expr = parser.expression().unwrap();
         assert_eq!(
