@@ -97,6 +97,18 @@ impl ValueType {
             _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
     }
+
+    pub fn as_string(&self) -> String {
+        match self {
+            ValueType::Nil => "nil".to_string(),
+            ValueType::Bool(b) => b.to_string(),
+            ValueType::Number(n) => n.to_string(),
+            ValueType::Address(a) => a.to_string(),
+            ValueType::Text(s) => s.to_string(),
+            ValueType::Function(func) => func.name.to_string(),
+            ValueType::NativeFunction(func) => func.name.to_string(),
+        }
+    }
 }
 
 impl Display for ValueType {

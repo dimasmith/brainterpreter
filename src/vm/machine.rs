@@ -320,6 +320,13 @@ impl Vm {
                     _ => return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
                 }
             }
+            "as_string" => {
+                let value = self.stack.pop()?;
+                self.stack.pop()?;
+                let string = value.as_string();
+                self.stack.push(ValueType::Text(Box::new(string)));
+                Ok(())
+            }
             _ => Err(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
                 function.name().to_string(),
             ))),
@@ -398,6 +405,7 @@ impl Default for Vm {
             out: Rc::new(RefCell::new(out)),
         };
         vm.define_native_function("len", 1);
+        vm.define_native_function("as_string", 1);
         vm
     }
 }

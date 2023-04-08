@@ -175,6 +175,20 @@ fn iterate_over_characters() {
     assert_eq!(out, "R\nu\ns\nt\n");
 }
 
+#[test]
+fn report_number_of_characters() {
+    let source = r#"
+    fun report_number_of_characters(str) {
+        return str + " has " + as_string(len(str)) + " characters.";
+    }
+    print report_number_of_characters("Rust");
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "Rust has 4 characters.\n");
+}
+
 pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let io = Rc::new(RefCell::new(vec![]));
     {
