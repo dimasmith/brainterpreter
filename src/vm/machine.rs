@@ -343,6 +343,18 @@ impl Vm {
                 self.stack.push(ValueType::Text(Box::new(string)));
                 Ok(())
             }
+            "as_char" => {
+                let value = self.stack.pop()?;
+                self.stack.pop()?;
+                match &value {
+                    ValueType::Number(n) => {
+                        let c = *n as u8 as char;
+                        self.stack.push(ValueType::Text(Box::new(c.to_string())));
+                        Ok(())
+                    }
+                    _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+                }
+            }
             _ => Err(VmError::RuntimeError(VmRuntimeError::UndefinedVariable(
                 function.name().to_string(),
             ))),
@@ -430,6 +442,7 @@ impl Default for Vm {
         };
         vm.define_native_function("len", 1);
         vm.define_native_function("as_string", 1);
+        vm.define_native_function("as_char", 1);
         vm
     }
 }
