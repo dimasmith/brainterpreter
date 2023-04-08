@@ -1,6 +1,6 @@
 use log::trace;
 
-use crate::ast::{Expression, Statement};
+use crate::ast::Statement;
 use crate::lexer::token::Token;
 use crate::lexer::SourceToken;
 use crate::parser::{Parser, ParsingError};
@@ -21,11 +21,7 @@ where
                 Ok(Statement::Print(expr))
             }
             Token::LeftCurly => self.block_statement(),
-            Token::Let => {
-                let declaration = self.variable_definition();
-
-                declaration
-            }
+            Token::Let => self.variable_definition(),
             Token::Fun => self.function_definition(),
             Token::If => self.if_statement(),
             Token::While => self.while_statement(),
@@ -43,7 +39,7 @@ where
         let token = self.advance();
         trace!("Variable declaration token: {:?}", token);
         let name = match token {
-            Token::Identifier(name) => name.clone(),
+            Token::Identifier(name) => name,
             _ => {
                 return Err(ParsingError::MissingToken {
                     position: self.last_position(),
@@ -92,7 +88,7 @@ where
         self.consume(&Token::RightParen)?;
         self.consume(&Token::LeftCurly)?;
         let body = self.block_statement()?;
-        Ok(Statement::Function(name.clone(), parameters, vec![body]))
+        Ok(Statement::Function(name, parameters, vec![body]))
     }
 
     fn block_statement(&mut self) -> Result<Statement, ParsingError> {

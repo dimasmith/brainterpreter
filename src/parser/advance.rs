@@ -37,7 +37,7 @@ where
         Err(ParsingError::MissingToken {
             position: self.last_position(),
             expected: expected.clone(),
-            actual: token.clone(),
+            actual: token,
         })
     }
 

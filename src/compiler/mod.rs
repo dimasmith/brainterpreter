@@ -220,10 +220,7 @@ impl Compiler {
                 self.expression(a)?;
                 self.chunk.add_op(Op::Cmp);
             }
-            Expression::Index {
-                array: array,
-                index: index,
-            } => {
+            Expression::Index { array, index } => {
                 self.expression(index)?;
                 self.expression(array)?;
                 self.chunk.add_op(Op::LoadIndex);
@@ -234,13 +231,11 @@ impl Compiler {
 
     fn assign(&mut self, target: &Expression, value: &Expression) -> CompilationResult {
         match target {
-            Expression::Variable(name) => self.assign_variable(&name, value),
+            Expression::Variable(name) => self.assign_variable(name, value),
             Expression::Index { array, index } => self.assign_index(array, index, value),
-            _ => {
-                return Err(CompileError::UnsupportedAssignmentTarget {
-                    context: "".to_string(),
-                });
-            }
+            _ => Err(CompileError::UnsupportedAssignmentTarget {
+                context: "".to_string(),
+            }),
         }
     }
 
@@ -329,14 +324,14 @@ impl Compiler {
         &mut self,
         name: &str,
         params: &Vec<String>,
-        body: &Vec<Statement>,
+        body: &[Statement],
     ) -> CompilationResult {
         let mut function_compiler = Compiler::default();
         function_compiler.begin_scope();
         for param in params {
             function_compiler.declare_variable(param)?;
         }
-        let function_program = Program::new(body.clone());
+        let function_program = Program::new(body.to_vec());
         let mut chunk = function_compiler.compile_program(function_program)?;
         chunk.add_op(Op::Nil);
         chunk.add_op(Op::Return);

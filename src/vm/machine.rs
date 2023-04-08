@@ -137,7 +137,7 @@ impl Vm {
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
-            (Op::LoadIndex, ValueType::Text(s), ValueType::Number(i)) => value_a
+            (Op::LoadIndex, ValueType::Text(_), ValueType::Number(_)) => value_a
                 .get(&value_b)
                 .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?,
             (Op::Not, _, _) => {
@@ -317,7 +317,7 @@ impl Vm {
                         self.stack.push(ValueType::Number(s.len() as f64));
                         Ok(())
                     }
-                    _ => return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
+                    _ => Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch)),
                 }
             }
             "as_string" => {

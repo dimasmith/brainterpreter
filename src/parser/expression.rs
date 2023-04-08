@@ -22,7 +22,7 @@ where
             Token::Nil => Expression::Nil,
             Token::True => Expression::BooleanLiteral(true),
             Token::False => Expression::BooleanLiteral(false),
-            Token::StringLiteral(s) => Expression::StringLiteral(s.clone()),
+            Token::StringLiteral(s) => Expression::StringLiteral(s),
             Token::Minus => {
                 let binding = self
                     .prefix_binding(&token)
@@ -49,12 +49,7 @@ where
                     }
                 }
             }
-            t => {
-                return Err(ParsingError::UnexpectedToken(
-                    t.clone(),
-                    self.last_position(),
-                ))
-            }
+            t => return Err(ParsingError::UnexpectedToken(t, self.last_position())),
         };
 
         loop {
@@ -197,10 +192,7 @@ where
 }
 
 enum Precedence {
-    None,
     Assignment,
-    Or,
-    And,
     Equality,
     Comparison,
     Term,
@@ -213,10 +205,10 @@ enum Precedence {
 impl Precedence {
     fn base_binding(&self) -> u8 {
         match self {
-            Precedence::None => 0,
+            // Precedence::None => 0,
             Precedence::Assignment => 1,
-            Precedence::Or => 3,
-            Precedence::And => 5,
+            // Precedence::Or => 3,
+            // Precedence::And => 5,
             Precedence::Equality => 7,
             Precedence::Comparison => 9,
             Precedence::Term => 11,
@@ -229,7 +221,7 @@ impl Precedence {
 
     fn infix_binding(&self) -> Option<(u8, u8)> {
         match self {
-            Precedence::None | Precedence::Unary | Precedence::Index => None,
+            Precedence::Unary | Precedence::Index => None,
             p => Some((p.base_binding(), p.base_binding() + 1)),
         }
     }
@@ -252,7 +244,6 @@ impl Precedence {
 #[cfg(test)]
 mod tests {
     use crate::ast::Expression;
-    use crate::ast::Statement;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
 

@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use log::error;
 
 use l9_vm::interpret;

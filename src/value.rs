@@ -189,7 +189,7 @@ mod tests {
 
         let num = ValueType::Number(-1.0);
         let idx = num.index();
-        assert!(matches!(idx, Err(TypeError::IncorrectIndex(-1.0))));
+        assert!(matches!(idx, Err(TypeError::IncorrectIndex(_))));
 
         let num = ValueType::Text(Box::new("hello".to_string()));
         let idx = num.index();

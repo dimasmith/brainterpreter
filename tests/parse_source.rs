@@ -1,4 +1,4 @@
-use l9_vm::ast::{Expression, Program, Statement};
+use l9_vm::ast::Program;
 use l9_vm::lexer::Lexer;
 use l9_vm::parser::{Parser, ParsingError};
 
@@ -7,7 +7,7 @@ fn parse_array_element_read() {
     let source = r#"
         i = i + 1;
     "#;
-    let program = parse(source).unwrap();
+    let _ = parse(source).unwrap();
 
     // assert_eq!(
     //     program.statements(),
