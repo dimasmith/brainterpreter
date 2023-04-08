@@ -94,11 +94,40 @@ impl Expression {
     pub fn number(n: impl Into<f64>) -> Self {
         NumberLiteral(n.into())
     }
+
+    pub fn variable(name: &str) -> Self {
+        Expression::Variable(name.to_string())
+    }
 }
 
 impl Statement {
     pub fn expression(expr: Expression) -> Self {
         Statement::Expression(expr)
+    }
+
+    pub fn function(name: &str, args: &[&str], body: &[Statement]) -> Self {
+        let args = args.iter().map(|s| s.to_string()).collect();
+        Statement::Function(name.to_string(), args, body.to_vec())
+    }
+
+    pub fn if_statement(condition: Expression, then_branch: Statement) -> Self {
+        Statement::If(condition, Box::new(then_branch), None)
+    }
+
+    pub fn if_else_statement(
+        condition: Expression,
+        then_branch: Statement,
+        else_branch: Statement,
+    ) -> Self {
+        Statement::If(
+            condition,
+            Box::new(then_branch),
+            Some(Box::new(else_branch)),
+        )
+    }
+
+    pub fn while_loop(expr: Expression, body: Statement) -> Self {
+        Statement::While(expr, Box::new(body))
     }
 
     pub fn print(expr: Expression) -> Self {

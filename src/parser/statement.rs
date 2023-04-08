@@ -14,12 +14,7 @@ where
             return self.expression_statement();
         }
         match self.advance() {
-            Token::Print => {
-                trace!("Parsing print statement");
-                let expr = self.expression()?;
-                self.consume(&Token::Semicolon)?;
-                Ok(Statement::Print(expr))
-            }
+            Token::Print => self.print_statement(),
             Token::LeftCurly => self.block_statement(),
             Token::Let => self.variable_definition(),
             Token::Fun => self.function_definition(),
@@ -130,6 +125,13 @@ where
         Ok(Statement::While(condition, Box::new(body)))
     }
 
+    fn print_statement(&mut self) -> Result<Statement, ParsingError> {
+        trace!("Parsing print statement");
+        let expr = self.expression()?;
+        self.consume(&Token::Semicolon)?;
+        Ok(Statement::Print(expr))
+    }
+
     fn expression_statement(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing expression statement");
         let expr = self.expression()?;
@@ -140,62 +142,117 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{Expression, Statement};
+    use crate::ast::{BinaryOperator, Expression, Statement};
     use crate::lexer::Lexer;
 
     use super::*;
 
     #[test]
-    fn test_variable_declaration() {
+    fn variable_declaration() {
         let mut parser = Parser::new(Lexer::new("let a;"));
         let statement = parser.statement().unwrap();
         assert_eq!(statement, Statement::Variable("a".to_string(), None));
     }
 
     #[test]
-    fn test_variable_assignment() {
+    fn variable_assignment() {
         let mut parser = Parser::new(Lexer::new("a = 1;"));
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
             Statement::Expression(Expression::Assign {
-                target: Box::new(Expression::Variable("a".to_string())),
-                value: Box::new(Expression::NumberLiteral(1.0))
+                target: Box::new(Expression::variable("a")),
+                value: Box::new(Expression::number(1))
             })
         );
     }
 
     #[test]
-    fn test_variable_declaration_with_assignment() {
+    fn variable_definition() {
         let mut parser = Parser::new(Lexer::new("let a = 1;"));
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Variable("a".to_string(), Some(Expression::NumberLiteral(1.0)))
+            Statement::Variable("a".to_string(), Some(Expression::number(1)))
         );
     }
 
     #[test]
-    fn test_function_declaration() {
+    fn function_definition() {
         let mut parser = Parser::new(Lexer::new("fun a() {}"));
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Function("a".to_string(), vec![], vec![Statement::Block(vec![])])
+            Statement::function("a", &[], &[Statement::Block(vec![])])
         );
     }
 
     #[test]
-    fn test_function_declaration_with_parameters() {
+    fn function_definition_with_parameters() {
         let mut parser = Parser::new(Lexer::new("fun a(b, c) {}"));
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Function(
-                "a".to_string(),
-                vec!["b".to_string(), "c".to_string()],
-                vec![Statement::Block(vec![])]
+            Statement::function("a", &["b", "c"], &[Statement::Block(vec![])])
+        );
+    }
+
+    #[test]
+    fn if_statement() {
+        let mut parser = Parser::new(Lexer::new("if (a == 10) { }"));
+        let statement = parser.statement().unwrap();
+        assert_eq!(
+            statement,
+            Statement::if_statement(
+                Expression::binary(
+                    BinaryOperator::Equal,
+                    Expression::variable("a"),
+                    Expression::number(10)
+                ),
+                Statement::Block(vec![]),
             )
         );
+    }
+
+    #[test]
+    fn if_else_statement() {
+        let mut parser = Parser::new(Lexer::new("if (a == 10) { } else {}"));
+        let statement = parser.statement().unwrap();
+        assert_eq!(
+            statement,
+            Statement::if_else_statement(
+                Expression::binary(
+                    BinaryOperator::Equal,
+                    Expression::variable("a"),
+                    Expression::number(10)
+                ),
+                Statement::Block(vec![]),
+                Statement::Block(vec![])
+            )
+        );
+    }
+
+    #[test]
+    fn while_statement() {
+        let mut parser = Parser::new(Lexer::new("while (i > 0) { }"));
+        let statement = parser.statement().unwrap();
+        assert_eq!(
+            statement,
+            Statement::while_loop(
+                Expression::binary(
+                    BinaryOperator::Greater,
+                    Expression::variable("i"),
+                    Expression::number(0)
+                ),
+                Statement::Block(vec![])
+            )
+        );
+    }
+
+    #[test]
+    fn print_statement() {
+        let mut parser = Parser::new(Lexer::new("print 1;"));
+        let statement = parser.statement().unwrap();
+        assert_eq!(statement, Statement::Print(Expression::number(1)));
     }
 }
