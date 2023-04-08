@@ -1,4 +1,4 @@
-let memSize = 256 * 256;
+let memSize = 32;
 let memory = [0; memSize];
 let ip = 0;
 let mem_p = 0;
