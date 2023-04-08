@@ -24,6 +24,8 @@ pub enum CompileError {
     Unknown,
     #[error("variable {0} is already declared in this scope")]
     VariableAlreadyDeclared(String),
+    #[error("unsupported assignment target: {context}")]
+    UnsupportedAssignmentTarget { context: String },
 }
 
 impl Compiler {
@@ -69,7 +71,7 @@ impl Compiler {
         }
     }
 
-    fn variable_assignment(&mut self, name: &str, expr: &Expression) -> Result<(), CompileError> {
+    fn assign_variable(&mut self, name: &str, expr: &Expression) -> Result<(), CompileError> {
         if self.locals.depth() > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.expression(expr)?;
@@ -79,6 +81,18 @@ impl Compiler {
             }
         }
         self.expression(expr)?;
+        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        Ok(())
+    }
+
+    fn assign_variable_from_stack(&mut self, name: &str) -> Result<(), CompileError> {
+        if self.locals.depth() > 0 {
+            if let Some(local) = self.locals.resolve_local(name) {
+                self.chunk.add_op(Op::StoreLocal(local));
+                self.chunk.add_op(Op::Pop); // removing hanging expression result from stack
+                return Ok(());
+            }
+        }
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
         Ok(())
     }
@@ -143,7 +157,10 @@ impl Compiler {
                 self.chunk.add_op(Op::ConstBool(*b));
             }
             Expression::AssignVariable(name, expr) => {
-                self.variable_assignment(name, expr)?;
+                self.assign_variable(name, expr)?;
+            }
+            Expression::Assign { target, value } => {
+                self.assign(target, value)?;
             }
             Expression::BinaryOperation(op, a, b) => {
                 self.expression(b)?;
@@ -187,7 +204,7 @@ impl Compiler {
                     }
                 }
             }
-            Expression::ReadVariable(name) => self.load_variable(name),
+            Expression::Variable(name) => self.load_variable(name),
             Expression::Call(name, args) => self.function_call(name, args)?,
             Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
@@ -203,13 +220,48 @@ impl Compiler {
                 self.expression(a)?;
                 self.chunk.add_op(Op::Cmp);
             }
-            Expression::Index(array, index) => {
+            Expression::Index {
+                array: array,
+                index: index,
+            } => {
                 self.expression(index)?;
                 self.expression(array)?;
-                self.chunk.add_op(Op::ArrayIndex);
+                self.chunk.add_op(Op::LoadIndex);
             }
         }
         Ok(())
+    }
+
+    fn assign(&mut self, target: &Expression, value: &Expression) -> CompilationResult {
+        match target {
+            Expression::Variable(name) => self.assign_variable(&name, value),
+            Expression::Index { array, index } => self.assign_index(array, index, value),
+            _ => {
+                return Err(CompileError::UnsupportedAssignmentTarget {
+                    context: "".to_string(),
+                });
+            }
+        }
+    }
+
+    fn assign_index(
+        &mut self,
+        array: &Expression,
+        index: &Expression,
+        value: &Expression,
+    ) -> CompilationResult {
+        if let Expression::Variable(name) = array {
+            self.expression(index)?;
+            self.load_variable(name);
+            self.expression(value)?;
+            self.chunk.add_op(Op::StoreIndex);
+            self.assign_variable_from_stack(name)?;
+            Ok(())
+        } else {
+            Err(CompileError::UnsupportedAssignmentTarget {
+                context: "".to_string(),
+            })
+        }
     }
 
     fn load_variable(&mut self, name: &str) {
@@ -400,10 +452,8 @@ mod tests {
     #[test]
     fn shadow_initialization() {
         let global = Statement::Variable("a".to_string(), Some(Expression::number(1.0)));
-        let local = Statement::Variable(
-            "a".to_string(),
-            Some(Expression::ReadVariable("a".to_string())),
-        );
+        let local =
+            Statement::Variable("a".to_string(), Some(Expression::Variable("a".to_string())));
         let block = Statement::Block(vec![local]);
         let mut compiler = Compiler::default();
 

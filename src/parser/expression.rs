@@ -68,11 +68,14 @@ where
                     self.advance();
                     let index = self.expression_bp(0)?;
                     self.consume(&Token::RightSquare)?;
-                    lhs = Expression::Index(Box::new(lhs), Box::new(index));
+                    lhs = Expression::Index {
+                        array: Box::new(lhs),
+                        index: Box::new(index),
+                    };
                     token = self.peek().clone();
                 } else if let Token::LeftParen = token {
                     match lhs {
-                        Expression::ReadVariable(name) => {
+                        Expression::Variable(name) => {
                             lhs = self.function_call_expression(&name)?;
                             token = self.peek().clone();
                         }
@@ -87,10 +90,13 @@ where
                 }
                 if let Token::Equal = token {
                     self.advance();
-                    match lhs {
-                        Expression::ReadVariable(name) => {
+                    match &lhs {
+                        Expression::Variable(_) | Expression::Index { .. } => {
                             let rhs = self.expression_bp(right_binding)?;
-                            lhs = Expression::AssignVariable(name, Box::new(rhs));
+                            lhs = Expression::Assign {
+                                target: Box::new(lhs.clone()),
+                                value: Box::new(rhs),
+                            };
                             continue;
                         }
                         _ => return Err(ParsingError::InvalidAssignment(self.last_position())),
@@ -117,7 +123,7 @@ where
 
     fn variable_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
         trace!("Parsing variable expression (name: {})", name);
-        Ok(Expression::ReadVariable(name.to_string()))
+        Ok(Expression::Variable(name.to_string()))
     }
 
     fn function_call_expression(&mut self, name: &str) -> Result<Expression, ParsingError> {
@@ -246,6 +252,7 @@ impl Precedence {
 #[cfg(test)]
 mod tests {
     use crate::ast::Expression;
+    use crate::ast::Statement;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
 
@@ -307,7 +314,10 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::AssignVariable("a".to_string(), Box::new(Expression::number(1)))
+            Expression::Assign {
+                target: Box::new(Expression::Variable("a".to_string())),
+                value: Box::new(Expression::number(1))
+            }
         );
     }
 

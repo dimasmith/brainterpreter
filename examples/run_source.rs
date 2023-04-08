@@ -7,10 +7,9 @@ use l9_vm::interpret;
 fn main() {
     env_logger::init();
     let source = r#"
-    fun add(a, b) {
-        return a + b;
-    }
-    print add(1, 2);
+    let w = "Rust";    
+    w[0] = "D";
+    print w;
     "#;
     match interpret(source) {
         Ok(_) => {}

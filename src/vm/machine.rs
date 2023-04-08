@@ -92,7 +92,8 @@ impl Vm {
                     let value = ValueType::Bool(b);
                     self.stack.push(value);
                 }
-                Op::ArrayIndex => self.binary_operation(op.clone())?,
+                Op::LoadIndex => self.binary_operation(op.clone())?,
+                Op::StoreIndex => self.store_index()?,
                 Op::Pop => {
                     self.stack.pop()?;
                 }
@@ -134,7 +135,7 @@ impl Vm {
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
-            (Op::ArrayIndex, ValueType::Text(s), ValueType::Number(i)) => {
+            (Op::LoadIndex, ValueType::Text(s), ValueType::Number(i)) => {
                 let s = s.as_ref();
                 if i < 0.0 {
                     return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
@@ -159,6 +160,36 @@ impl Vm {
             }
         };
         self.stack.push(result);
+        Ok(())
+    }
+
+    fn store_index(&mut self) -> Result<(), VmError> {
+        let value = self.stack.pop()?;
+        let mut target = self.stack.pop()?;
+        let index = self.stack.pop()?;
+        let idx = match index {
+            ValueType::Number(i) => i as usize,
+            _ => {
+                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            }
+        };
+        match (target, value) {
+            (ValueType::Text(s), ValueType::Text(c)) => {
+                let mut new_string = s.clone();
+                if idx >= s.len() {
+                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
+                        s.len(),
+                        idx as f64,
+                    )));
+                }
+                new_string.replace_range(idx..idx + 1, c.as_ref());
+                let new_value = ValueType::Text(new_string);
+                self.stack.push(new_value);
+            }
+            _ => {
+                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
+            }
+        };
         Ok(())
     }
 

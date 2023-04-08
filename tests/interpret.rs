@@ -121,6 +121,19 @@ fn assign_variables() {
     assert_eq!(out, "1\n2\n3\n2\n");
 }
 
+#[test]
+fn change_string_index() {
+    let source = r#"
+    let w = "Rust";
+    w[0] = "D";
+    print w;
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "Dust\n");
+}
+
 pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let io = Rc::new(RefCell::new(vec![]));
     {

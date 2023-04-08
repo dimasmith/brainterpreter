@@ -35,9 +35,16 @@ pub enum Expression {
     BooleanLiteral(bool),
     StringLiteral(String),
     /// Access to array-like variable element by index
-    Index(Box<Expression>, Box<Expression>),
-    ReadVariable(String),
+    Index {
+        array: Box<Expression>,
+        index: Box<Expression>,
+    },
+    Variable(String),
     AssignVariable(String, Box<Expression>),
+    Assign {
+        target: Box<Expression>,
+        value: Box<Expression>,
+    },
     Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
