@@ -122,6 +122,18 @@ fn assign_variables() {
 }
 
 #[test]
+fn read_string_index() {
+    let source = r#"
+    let w = "Rust";    
+    print w[0];
+    "#;
+    let io = interpret(source).unwrap();
+    let out = String::from_utf8(io).unwrap();
+
+    assert_eq!(out, "R\n");
+}
+
+#[test]
 fn change_string_index() {
     let source = r#"
     let w = "Rust";

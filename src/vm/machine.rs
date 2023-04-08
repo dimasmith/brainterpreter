@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::log::LoggingTracer;
 use crate::trace::VmStepTrace;
-use crate::value::{Function, ValueType};
+use crate::value::{Function, TypeError, ValueType};
 use crate::vm::opcode::{Chunk, Op};
 
 #[derive(Debug, Error)]
@@ -40,6 +40,8 @@ pub enum VmRuntimeError {
     UndefinedConstant(usize),
     #[error("accessing out of bounds value on index {0} with size {1}")]
     OutOfBounds(usize, f64),
+    #[error("error accessing array {0}")]
+    ArrayAccessError(#[from] TypeError),
 }
 
 pub struct Vm {
@@ -121,7 +123,7 @@ impl Vm {
         let value_a = self.stack.pop()?;
         let value_b = self.stack.pop()?;
 
-        let result = match (operation, value_a, value_b) {
+        let result = match (operation, &value_a, &value_b) {
             (Op::Add, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a + b),
             (Op::Add, ValueType::Text(a), ValueType::Text(b)) => {
                 let concat = format!("{}{}", a, b);
@@ -135,23 +137,9 @@ impl Vm {
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
-            (Op::LoadIndex, ValueType::Text(s), ValueType::Number(i)) => {
-                let s = s.as_ref();
-                if i < 0.0 {
-                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
-                        s.len(),
-                        i,
-                    )));
-                }
-                if i as usize >= s.len() {
-                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
-                        s.len(),
-                        i,
-                    )));
-                }
-                let c = s.chars().nth(i as usize).unwrap();
-                ValueType::Text(Box::new(c.to_string()))
-            }
+            (Op::LoadIndex, ValueType::Text(s), ValueType::Number(i)) => value_a
+                .get(&value_b)
+                .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?,
             (Op::Not, _, _) => {
                 return Err(VmError::RuntimeError(VmRuntimeError::WrongOperation));
             }
@@ -165,31 +153,12 @@ impl Vm {
 
     fn store_index(&mut self) -> Result<(), VmError> {
         let value = self.stack.pop()?;
-        let mut target = self.stack.pop()?;
-        let index = self.stack.pop()?;
-        let idx = match index {
-            ValueType::Number(i) => i as usize,
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        };
-        match (target, value) {
-            (ValueType::Text(s), ValueType::Text(c)) => {
-                let mut new_string = s.clone();
-                if idx >= s.len() {
-                    return Err(VmError::RuntimeError(VmRuntimeError::OutOfBounds(
-                        s.len(),
-                        idx as f64,
-                    )));
-                }
-                new_string.replace_range(idx..idx + 1, c.as_ref());
-                let new_value = ValueType::Text(new_string);
-                self.stack.push(new_value);
-            }
-            _ => {
-                return Err(VmError::RuntimeError(VmRuntimeError::TypeMismatch));
-            }
-        };
+        let target = self.stack.pop()?;
+        let idx = self.stack.pop()?;
+        let new_value = target
+            .set(&idx, value)
+            .map_err(|e| VmError::RuntimeError(VmRuntimeError::ArrayAccessError(e)))?;
+        self.stack.push(new_value);
         Ok(())
     }
 
