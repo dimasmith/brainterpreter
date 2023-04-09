@@ -72,16 +72,6 @@ impl Compiler {
         }
     }
 
-    fn assign(&mut self, target: &Expression, value: &Expression) -> CompilationResult {
-        match target {
-            Expression::Variable(name) => self.assign_variable(name, value),
-            Expression::Index { array, index } => self.assign_index(array, index, value),
-            _ => Err(CompileError::UnsupportedAssignmentTarget {
-                context: "".to_string(),
-            }),
-        }
-    }
-
     fn assign_variable(&mut self, name: &str, value: &Expression) -> Result<(), CompileError> {
         self.expression(value)?;
         if self.locals.depth() > 0 {
@@ -158,8 +148,12 @@ impl Compiler {
             Expression::AssignVariable(name, expr) => {
                 self.assign_variable(name, expr)?;
             }
-            Expression::Assign { target, value } => {
-                self.assign(target, value)?;
+            Expression::AssignIndexVariable {
+                variable,
+                index,
+                value,
+            } => {
+                self.assign_index_variable(variable, index, value)?;
             }
             Expression::Array { initial, size } => self.initialize_array(initial, size)?,
             Expression::BinaryOperation(op, a, b) => {
@@ -202,7 +196,7 @@ impl Compiler {
                 }
             }
             Expression::Variable(name) => self.load_variable(name),
-            Expression::Call(name, args) => self.function_call(name, args)?,
+            Expression::FunctionCall(name, args) => self.function_call(name, args)?,
             Expression::UnaryOperation(UnaryOperator::Negate, lhs) => {
                 self.expression(lhs)?;
                 self.chunk.add_op(Op::ConstFloat(0.0));
@@ -229,24 +223,18 @@ impl Compiler {
         Ok(())
     }
 
-    fn assign_index(
+    fn assign_index_variable(
         &mut self,
-        array: &Expression,
+        variable: &str,
         index: &Expression,
         value: &Expression,
     ) -> CompilationResult {
-        if let Expression::Variable(name) = array {
-            self.expression(index)?;
-            self.load_variable(name);
-            self.expression(value)?;
-            self.chunk.add_op(Op::StoreIndex);
-            self.assign_variable_from_stack(name)?;
-            Ok(())
-        } else {
-            Err(CompileError::UnsupportedAssignmentTarget {
-                context: "".to_string(),
-            })
-        }
+        self.expression(index)?;
+        self.load_variable(variable);
+        self.expression(value)?;
+        self.chunk.add_op(Op::StoreIndex);
+        self.assign_variable_from_stack(variable)?;
+        Ok(())
     }
 
     fn load_variable(&mut self, name: &str) {

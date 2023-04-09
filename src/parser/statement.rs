@@ -160,10 +160,10 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Expression(Expression::Assign {
-                target: Box::new(Expression::variable("a")),
-                value: Box::new(Expression::number(1))
-            })
+            Statement::Expression(Expression::AssignVariable(
+                "a".to_string(),
+                Box::new(Expression::number(1))
+            ))
         );
     }
 

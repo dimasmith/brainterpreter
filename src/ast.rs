@@ -40,15 +40,16 @@ pub enum Expression {
     },
     Variable(String),
     AssignVariable(String, Box<Expression>),
-    Assign {
-        target: Box<Expression>,
+    AssignIndexVariable {
+        variable: String,
+        index: Box<Expression>,
         value: Box<Expression>,
     },
     Array {
         initial: Box<Expression>,
         size: Box<Expression>,
     },
-    Call(String, Vec<Expression>),
+    FunctionCall(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
 }

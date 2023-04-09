@@ -97,16 +97,23 @@ where
     }
 
     fn assignment(&mut self, lhs: Expression, right_binding: u8) -> ParsingResult {
-        match lhs {
-            Expression::Variable(_) | Expression::Index { .. } => {
-                let rhs = self.expression_bp(right_binding)?;
-                Ok(Expression::Assign {
-                    target: Box::new(lhs),
-                    value: Box::new(rhs),
-                })
-            }
-            _ => Err(ParsingError::InvalidAssignment(self.last_position())),
+        if let Expression::Variable(name) = lhs {
+            let rhs = self.expression_bp(right_binding)?;
+            return Ok(Expression::AssignVariable(name, Box::new(rhs)));
         }
+
+        if let Expression::Index { array, index } = lhs {
+            if let Expression::Variable(name) = *array {
+                let rhs = self.expression_bp(right_binding)?;
+                return Ok(Expression::AssignIndexVariable {
+                    variable: name.to_string(),
+                    index,
+                    value: Box::new(rhs),
+                });
+            }
+        }
+
+        Err(ParsingError::InvalidAssignment(self.last_position()))
     }
 
     fn index(&mut self, lhs: Expression) -> ParsingResult {
@@ -141,7 +148,7 @@ where
         let mut arguments = vec![];
         if let Token::RightParen = self.peek() {
             self.consume(&Token::RightParen)?;
-            return Ok(Expression::Call(name.to_string(), arguments));
+            return Ok(Expression::FunctionCall(name.to_string(), arguments));
         }
         loop {
             let expr = self.expression_bp(0)?;
@@ -157,7 +164,7 @@ where
                 }
             }
         }
-        Ok(Expression::Call(name.to_string(), arguments))
+        Ok(Expression::FunctionCall(name.to_string(), arguments))
     }
 
     fn binary_operator(&mut self) -> Option<BinaryOperator> {
@@ -328,10 +335,7 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::Assign {
-                target: Box::new(Expression::Variable("a".to_string())),
-                value: Box::new(Expression::number(1))
-            }
+            Expression::AssignVariable("a".to_string(), Box::new(Expression::number(1)))
         );
     }
 
@@ -354,11 +358,9 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::Assign {
-                target: Box::new(Expression::Index {
-                    array: Box::new(Expression::variable("a")),
-                    index: Box::new(Expression::number(1))
-                }),
+            Expression::AssignIndexVariable {
+                variable: "a".to_string(),
+                index: Box::new(Expression::number(1)),
                 value: Box::new(Expression::number(2))
             }
         );
@@ -368,7 +370,7 @@ mod tests {
     fn function_call() {
         let mut parser = Parser::new(Lexer::new("foo()"));
         let expr = parser.expression().unwrap();
-        assert_eq!(expr, Expression::Call("foo".to_string(), vec![]));
+        assert_eq!(expr, Expression::FunctionCall("foo".to_string(), vec![]));
     }
 
     #[test]
@@ -377,7 +379,7 @@ mod tests {
         let expr = parser.expression().unwrap();
         assert_eq!(
             expr,
-            Expression::Call(
+            Expression::FunctionCall(
                 "foo".to_string(),
                 vec![Expression::number(1), Expression::number(2)]
             )
