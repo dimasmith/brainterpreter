@@ -46,9 +46,9 @@ where
 
         let def = if self.advance_if(Token::Equal) {
             let expr = self.expression()?;
-            Ok(Statement::Variable(name, Some(expr)))
+            Ok(Statement::DefineVariable(name, expr))
         } else {
-            Ok(Statement::Variable(name, None))
+            Ok(Statement::DeclareVariable(name))
         };
         self.consume(&Token::Semicolon)?;
         def
@@ -151,7 +151,7 @@ mod tests {
     fn variable_declaration() {
         let mut parser = Parser::new(Lexer::new("let a;"));
         let statement = parser.statement().unwrap();
-        assert_eq!(statement, Statement::Variable("a".to_string(), None));
+        assert_eq!(statement, Statement::DeclareVariable("a".to_string()));
     }
 
     #[test]
@@ -173,7 +173,7 @@ mod tests {
         let statement = parser.statement().unwrap();
         assert_eq!(
             statement,
-            Statement::Variable("a".to_string(), Some(Expression::number(1)))
+            Statement::DefineVariable("a".to_string(), Expression::number(1))
         );
     }
 

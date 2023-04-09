@@ -14,7 +14,6 @@ pub enum BinaryOperator {
     Greater,
     LessOrEqual,
     GreaterOrEqual,
-    Assign,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,14 +51,14 @@ pub enum Expression {
     Call(String, Vec<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
     UnaryOperation(UnaryOperator, Box<Expression>),
-    Cmp(Box<Expression>, Box<Expression>),
 }
 
 /// Represents a statement in the l9 language.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Expression(Expression),
-    Variable(String, Option<Expression>),
+    DeclareVariable(String),
+    DefineVariable(String, Expression),
     Function(String, Vec<String>, Box<Statement>),
     Print(Expression),
     Block(Vec<Statement>),

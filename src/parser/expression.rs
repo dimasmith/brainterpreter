@@ -172,7 +172,6 @@ where
             Token::LessEqual => Some(BinaryOperator::LessOrEqual),
             Token::Greater => Some(BinaryOperator::Greater),
             Token::GreaterEqual => Some(BinaryOperator::GreaterOrEqual),
-            Token::Equal => Some(BinaryOperator::Assign),
             _ => None,
         }
     }
