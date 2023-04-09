@@ -340,20 +340,20 @@ impl Vm {
         self.frames.last().map(|frame| frame.ip()).unwrap_or(0)
     }
 
-    fn chunk(&self) -> Chunk {
+    fn chunk(&self) -> &Chunk {
         let frame = self.frames.last().unwrap();
         frame.chunk()
     }
 
     fn trace_before(&self) {
         if let Some(ref tracer) = self.trace {
-            tracer.trace_before(self.ip() - 1, &self.chunk(), &self.stack);
+            tracer.trace_before(self.ip() - 1, self.chunk(), &self.stack);
         }
     }
 
     fn trace_after(&mut self) {
         if let Some(trace) = &self.trace {
-            trace.trace_after(self.ip(), &self.chunk(), &self.stack);
+            trace.trace_after(self.ip(), self.chunk(), &self.stack);
         }
     }
 

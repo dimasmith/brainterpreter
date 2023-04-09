@@ -45,7 +45,7 @@ impl CallFrame {
         Ok(())
     }
 
-    pub fn chunk(&self) -> Chunk {
-        self.chunk.clone()
+    pub fn chunk(&self) -> &Chunk {
+        &self.chunk
     }
 }
