@@ -49,18 +49,11 @@ impl Compiler {
     fn statement(&mut self, ast: &Statement) -> CompilationResult {
         trace!("Compiling statement: {:?}", ast);
         match ast {
-            Statement::Expression(expr) => self.expression(expr),
-            Statement::Print(expr) => {
-                self.expression(expr)?;
-                self.chunk.add_op(Op::Print);
-                Ok(())
-            }
+            Statement::Expression(expr) => self.expression_statement(expr),
+            Statement::Print(expr) => self.print_statement(expr),
             Statement::DeclareVariable(name) => self.declare_variable(name),
             Statement::DefineVariable(name, value) => self.define_variable(name, value),
-            Statement::Block(statements) => {
-                self.block(statements)?;
-                Ok(())
-            }
+            Statement::Block(statements) => self.block_statement(statements),
             Statement::If(condition, then, otherwise) => {
                 self.if_statement(condition, then, otherwise)
             }
@@ -72,12 +65,22 @@ impl Compiler {
         }
     }
 
+    fn block_statement(&mut self, statements: &Vec<Statement>) -> Result<(), CompileError> {
+        self.block(statements)?;
+        Ok(())
+    }
+
+    fn print_statement(&mut self, expr: &Expression) -> Result<(), CompileError> {
+        self.expression(expr)?;
+        self.chunk.add_op(Op::Print);
+        Ok(())
+    }
+
     fn assign_variable(&mut self, name: &str, value: &Expression) -> Result<(), CompileError> {
         self.expression(value)?;
         if self.locals.depth() > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.chunk.add_op(Op::StoreLocal(local));
-                self.chunk.add_op(Op::Pop); // removing hanging expression result from stack
                 return Ok(());
             }
         }
@@ -89,7 +92,6 @@ impl Compiler {
         if self.locals.depth() > 0 {
             if let Some(local) = self.locals.resolve_local(name) {
                 self.chunk.add_op(Op::StoreLocal(local));
-                self.chunk.add_op(Op::Pop); // removing hanging expression result from stack
                 return Ok(());
             }
         }
@@ -125,6 +127,12 @@ impl Compiler {
 
         self.expression(value)?;
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        Ok(())
+    }
+
+    fn expression_statement(&mut self, expr: &Expression) -> CompilationResult {
+        self.expression(expr)?;
+        self.chunk.add_op(Op::Pop);
         Ok(())
     }
 
@@ -344,12 +352,11 @@ mod tests {
 
     #[test]
     fn assign_global_variable() {
-        let declare = Statement::DeclareVariable("a".to_string());
         let assign = Statement::Expression(Expression::AssignVariable(
             "a".to_string(),
             Box::new(Expression::number(42)),
         ));
-        let program = Program::new(vec![declare, assign]);
+        let program = Program::new(vec![assign]);
         let mut compiler = Compiler::default();
 
         let script = compiler.compile_script(program).unwrap();
@@ -358,10 +365,9 @@ mod tests {
         assert_eq!(
             ops,
             vec![
-                &Op::Nil,
-                &Op::StoreGlobal("a".to_string()),
                 &Op::ConstFloat(42.0),
-                &Op::StoreGlobal("a".to_string())
+                &Op::StoreGlobal("a".to_string()),
+                &Op::Pop
             ]
         );
     }

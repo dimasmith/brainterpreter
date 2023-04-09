@@ -103,8 +103,8 @@ impl Vm {
                 Op::Print => self.print()?,
                 Op::StoreGlobal(name) => self.store_global(name.clone())?,
                 Op::LoadGlobal(name) => self.load_global(name.clone())?,
-                Op::StoreLocal(offset) => self.write_local_variable(offset)?,
-                Op::LoadLocal(offset) => self.read_local_variable(offset)?,
+                Op::StoreLocal(offset) => self.store_local(offset)?,
+                Op::LoadLocal(offset) => self.load_local(offset)?,
                 Op::Jump(offset) => self.jump(offset)?,
                 Op::JumpIfFalse(offset) => self.jump_if_false(offset)?,
             }
@@ -133,7 +133,7 @@ impl Vm {
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
             (Op::LoadIndex, _, _) => value_a
                 .get(&value_b)
-                .map_err(|e| (VmRuntimeError::ArrayAccessError(e)))?,
+                .map_err(VmRuntimeError::ArrayAccessError)?,
             (Op::Not, _, _) => {
                 return Err(VmRuntimeError::WrongOperation);
             }
@@ -151,7 +151,7 @@ impl Vm {
         let idx = self.stack.pop()?;
         let new_value = target
             .set(&idx, value)
-            .map_err(|e| (VmRuntimeError::ArrayAccessError(e)))?;
+            .map_err(VmRuntimeError::ArrayAccessError)?;
         self.stack.push(new_value);
         Ok(())
     }
@@ -185,12 +185,12 @@ impl Vm {
         self.out
             .borrow_mut()
             .write_fmt(format_args!("{}\n", line))
-            .map_err(|e| VmRuntimeError::IoError(e))
+            .map_err(VmRuntimeError::IoError)
     }
 
     fn store_global(&mut self, name: String) -> VmResult {
-        let value = self.stack.pop()?;
-        self.globals.insert(name, value);
+        let value = self.stack.peek(0).ok_or(VmRuntimeError::StackExhausted)?;
+        self.globals.insert(name, value.clone());
         Ok(())
     }
 
@@ -203,14 +203,14 @@ impl Vm {
         Ok(())
     }
 
-    fn write_local_variable(&mut self, offset: usize) -> VmResult {
+    fn store_local(&mut self, offset: usize) -> VmResult {
         let value = self.stack.last().ok_or(VmRuntimeError::StackExhausted)?;
         let frame_offset = self.frames.last().unwrap().stack_top() + offset + 1;
         self.stack.set(frame_offset, value.clone())?;
         Ok(())
     }
 
-    fn read_local_variable(&mut self, offset: usize) -> VmResult {
+    fn load_local(&mut self, offset: usize) -> VmResult {
         let frame_offset = self.frames.last().unwrap().stack_top() + offset + 1;
         let value = self
             .stack

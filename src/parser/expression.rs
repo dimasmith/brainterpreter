@@ -106,7 +106,7 @@ where
             if let Expression::Variable(name) = *array {
                 let rhs = self.expression_bp(right_binding)?;
                 return Ok(Expression::AssignIndexVariable {
-                    variable: name.to_string(),
+                    variable: name,
                     index,
                     value: Box::new(rhs),
                 });

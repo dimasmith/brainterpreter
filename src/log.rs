@@ -9,10 +9,10 @@ use crate::vm::VmStack;
 pub struct LoggingTracer;
 
 impl VmStepTrace for LoggingTracer {
-    fn trace_before(&self, ip: usize, chunk: &Chunk, stack: &VmStack) {
+    fn trace_before(&self, ip: usize, chunk: &Chunk, _stack: &VmStack) {
         debug!("{}", "=".repeat(16));
         self.print_instructions_window(ip, chunk, 5);
-        self.print_stack(stack, "before");
+        // self.print_stack(stack, "before");
     }
 
     fn trace_after(&self, _ip: usize, _chunk: &Chunk, stack: &VmStack) {
