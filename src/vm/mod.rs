@@ -131,9 +131,7 @@ impl Vm {
             (Op::Cmp, ValueType::Number(a), ValueType::Number(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Bool(a), ValueType::Bool(b)) => ValueType::Bool(a == b),
             (Op::Cmp, ValueType::Text(a), ValueType::Text(b)) => ValueType::Bool(a == b),
-            (Op::LoadIndex, _, _) => value_a
-                .get(&value_b)
-                .map_err(VmRuntimeError::ArrayAccessError)?,
+            (Op::LoadIndex, _, _) => self.load_index(&value_a, &value_b)?,
             (Op::Not, _, _) => {
                 return Err(VmRuntimeError::WrongOperation);
             }
@@ -143,6 +141,16 @@ impl Vm {
         };
         self.stack.push(result);
         Ok(())
+    }
+
+    fn load_index(
+        &mut self,
+        value_a: &ValueType,
+        value_b: &ValueType,
+    ) -> Result<ValueType, VmRuntimeError> {
+        value_a
+            .get(&value_b)
+            .map_err(VmRuntimeError::ArrayAccessError)
     }
 
     fn store_index(&mut self) -> VmResult {
@@ -181,6 +189,7 @@ impl Vm {
             }
             ValueType::Text(s) => *s,
             ValueType::Array(a) => format_args!("[{}]\n", a.len()).to_string(),
+            ValueType::ArrayRef(a) => format_args!("&[{}]\n", a.borrow().len()).to_string(),
         };
         self.out
             .borrow_mut()
@@ -252,7 +261,9 @@ impl Vm {
         let size = self.index()?;
         let mut array = vec![];
         array.resize(size, initial_value);
-        self.stack.push(ValueType::Array(Box::new(array)));
+        // self.stack.push(ValueType::Array(Box::new(array)));
+        self.stack
+            .push(ValueType::ArrayRef(Rc::new(RefCell::new(array))));
         Ok(())
     }
 

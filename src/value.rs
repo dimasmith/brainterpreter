@@ -1,6 +1,8 @@
 //! Different values natively supported by the virtual machine
 
+use std::cell::RefCell;
 use std::fmt::Display;
+use std::rc::Rc;
 
 use thiserror::Error;
 
@@ -16,6 +18,7 @@ pub enum ValueType {
     Function(Box<Function>),
     NativeFunction(Box<NativeFunction>),
     Array(Box<Vec<ValueType>>),
+    ArrayRef(Rc<RefCell<Vec<ValueType>>>),
 }
 
 #[derive(Debug, Error)]
@@ -71,6 +74,10 @@ impl ValueType {
                 let idx = self.index_in_bounds(index.index()?)?;
                 Ok(arr[idx].clone())
             }
+            ValueType::ArrayRef(arr) => {
+                let idx = self.index_in_bounds(index.index()?)?;
+                Ok(arr.borrow()[idx].clone())
+            }
             _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
     }
@@ -89,6 +96,11 @@ impl ValueType {
                 arr[idx] = v.clone();
                 Ok(ValueType::Array(arr))
             }
+            (ValueType::ArrayRef(arr), v) => {
+                let idx = self.index_in_bounds(index.index()?)?;
+                arr.borrow_mut()[idx] = v.clone();
+                Ok(self.clone())
+            }
             (ValueType::Text(_), _) => Err(TypeError::UnsupportedArrayValueType(value)),
             _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
@@ -96,21 +108,10 @@ impl ValueType {
 
     fn index_in_bounds(&self, index: usize) -> Result<usize, TypeError> {
         match self {
-            ValueType::Text(s) => {
-                if index >= s.len() {
-                    return Err(TypeError::IndexOutOfBounds {
-                        index,
-                        size: s.len(),
-                    });
-                }
-                Ok(index)
-            }
-            ValueType::Array(arr) => {
-                if index >= arr.len() {
-                    return Err(TypeError::IndexOutOfBounds {
-                        index,
-                        size: arr.len(),
-                    });
+            ValueType::Text(_) | ValueType::Array(_) | ValueType::ArrayRef(_) => {
+                let len = self.len()?;
+                if index >= len {
+                    return Err(TypeError::IndexOutOfBounds { index, size: len });
                 }
                 Ok(index)
             }
@@ -127,7 +128,17 @@ impl ValueType {
             ValueType::Text(s) => s.to_string(),
             ValueType::Function(func) => func.name.to_string(),
             ValueType::NativeFunction(func) => func.name.to_string(),
-            ValueType::Array(_) => "array".to_string(),
+            ValueType::Array(_) => "[]".to_string(),
+            ValueType::ArrayRef(_) => "&[]".to_string(),
+        }
+    }
+
+    fn len(&self) -> Result<usize, TypeError> {
+        match self {
+            ValueType::Text(s) => Ok(s.len()),
+            ValueType::Array(arr) => Ok(arr.len()),
+            ValueType::ArrayRef(arr) => Ok(arr.borrow().len()),
+            _ => Err(TypeError::UnsupportedArrayType(self.clone())),
         }
     }
 }
@@ -142,7 +153,8 @@ impl Display for ValueType {
             ValueType::Text(s) => write!(f, "s:{}", s),
             ValueType::Function(func) => write!(f, "fn:{}", func.name),
             ValueType::NativeFunction(func) => write!(f, "<native>fn:{}", func.name),
-            ValueType::Array(_) => write!(f, "array"),
+            ValueType::Array(_) => write!(f, "[]"),
+            ValueType::ArrayRef(_) => write!(f, "&[]"),
         }
     }
 }
