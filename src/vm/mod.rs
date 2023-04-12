@@ -9,10 +9,12 @@ use call::CallFrame;
 
 use crate::log::LoggingTracer;
 use crate::value::{Function, NativeFunction, TypeError, ValueType};
+use crate::vm::native::std_lib;
 use crate::vm::opcode::{Chunk, Op};
 use crate::vm::trace::VmStepTrace;
 
 mod call;
+mod native;
 pub mod opcode;
 mod stack;
 pub mod trace;
@@ -149,7 +151,7 @@ impl Vm {
         value_b: &ValueType,
     ) -> Result<ValueType, VmRuntimeError> {
         value_a
-            .get(&value_b)
+            .get(value_b)
             .map_err(VmRuntimeError::ArrayAccessError)
     }
 
@@ -285,47 +287,13 @@ impl Vm {
         if arity != function.arity() {
             return Err(VmRuntimeError::TypeMismatch);
         }
-        match function.name() {
-            "len" => {
-                let value = self.stack.pop()?;
-                match value {
-                    ValueType::Text(s) => {
-                        self.stack.pop()?;
-                        self.stack.push(ValueType::Number(s.len() as f64));
-                        Ok(())
-                    }
-                    _ => Err(VmRuntimeError::TypeMismatch),
-                }
-            }
-            "as_string" => {
-                let value = self.stack.pop()?;
-                self.stack.pop()?;
-                let string = value.as_string();
-                self.stack.push(ValueType::Text(Box::new(string)));
-                Ok(())
-            }
-            "as_char" => {
-                let value = self.stack.pop()?;
-                self.stack.pop()?;
-                match &value {
-                    ValueType::Number(n) => {
-                        let c = *n as u8 as char;
-                        self.stack.push(ValueType::Text(Box::new(c.to_string())));
-                        Ok(())
-                    }
-                    _ => Err(VmRuntimeError::TypeMismatch),
-                }
-            }
-            _ => Err(VmRuntimeError::UndefinedVariable(
-                function.name().to_string(),
-            )),
-        }
+        function.call(self)
     }
 
-    fn define_native_function(&mut self, name: &str, arity: usize) {
-        let native_function = NativeFunction::new(name.to_string(), arity);
-        let value = ValueType::NativeFunction(Box::new(native_function));
-        self.globals.insert(name.to_string(), value);
+    fn define_native_function(&mut self, native_function: NativeFunction) {
+        let name = native_function.name().to_string();
+        let value = ValueType::NativeFunction(Rc::new(native_function));
+        self.globals.insert(name, value);
     }
 
     fn ret(&mut self) -> VmResult {
@@ -383,6 +351,14 @@ impl Vm {
             Err(VmRuntimeError::TypeMismatch)
         }
     }
+
+    pub fn pop(&mut self) -> Result<ValueType, VmRuntimeError> {
+        self.stack.pop()
+    }
+
+    pub fn push(&mut self, value: ValueType) {
+        self.stack.push(value);
+    }
 }
 
 impl Default for Vm {
@@ -396,9 +372,9 @@ impl Default for Vm {
             trace: Some(Box::new(tracer)),
             out: Rc::new(RefCell::new(out)),
         };
-        vm.define_native_function("len", 1);
-        vm.define_native_function("as_string", 1);
-        vm.define_native_function("as_char", 1);
+        std_lib()
+            .iter()
+            .for_each(|f| vm.define_native_function(f.clone()));
         vm
     }
 }

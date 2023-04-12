@@ -1,12 +1,13 @@
 //! Different values natively supported by the virtual machine
 
 use std::cell::RefCell;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::rc::Rc;
 
 use thiserror::Error;
 
 use crate::vm::opcode::Chunk;
+use crate::vm::{Vm, VmRuntimeError};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueType {
@@ -16,7 +17,7 @@ pub enum ValueType {
     Address(usize),
     Text(Box<String>),
     Function(Box<Function>),
-    NativeFunction(Box<NativeFunction>),
+    NativeFunction(Rc<NativeFunction>),
     Array(Box<Vec<ValueType>>),
     ArrayRef(Rc<RefCell<Vec<ValueType>>>),
 }
@@ -42,10 +43,11 @@ pub struct Function {
     arity: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct NativeFunction {
     name: String,
     arity: usize,
+    function: fn(&mut Vm) -> Result<(), VmRuntimeError>,
 }
 
 impl ValueType {
@@ -186,8 +188,16 @@ impl Function {
 }
 
 impl NativeFunction {
-    pub fn new(name: String, arity: usize) -> Self {
-        Self { name, arity }
+    pub fn new(
+        name: &str,
+        arity: usize,
+        function: fn(&mut Vm) -> Result<(), VmRuntimeError>,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            arity,
+            function,
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -208,6 +218,18 @@ impl PartialEq<Function> for Function {
 impl PartialEq for NativeFunction {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+impl Debug for NativeFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<native>fn:{}", self.name)
+    }
+}
+
+impl NativeFunction {
+    pub fn call(&self, vm: &mut Vm) -> Result<(), VmRuntimeError> {
+        (self.function)(vm)
     }
 }
 
