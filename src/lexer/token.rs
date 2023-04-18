@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::lexer::SourceToken;
 use crate::source::Position;
 
-/// Lexical token of the l9 language
+/// Lexical token
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Plus,

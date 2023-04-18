@@ -1,6 +1,6 @@
-use l9_vm::ast::Program;
-use l9_vm::lexer::Lexer;
-use l9_vm::parser::{Parser, ParsingError};
+use brainterpreter::ast::Program;
+use brainterpreter::lexer::Lexer;
+use brainterpreter::parser::{Parser, ParsingError};
 
 #[test]
 fn parse_array_element_read() {

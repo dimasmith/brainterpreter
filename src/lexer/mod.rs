@@ -1,4 +1,4 @@
-//! Lexer for the l9 source code
+//! Lexer for the language tokens
 
 use log::error;
 

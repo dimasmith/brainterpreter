@@ -1,4 +1,4 @@
-//! Abstract syntax tree for l9 language
+//! Abstract syntax tree
 
 use crate::ast::Expression::{BinaryOperation, NumberLiteral, UnaryOperation};
 
@@ -54,7 +54,7 @@ pub enum Expression {
     UnaryOperation(UnaryOperator, Box<Expression>),
 }
 
-/// Represents a statement in the l9 language.
+/// Represents a statement of the language
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Expression(Expression),

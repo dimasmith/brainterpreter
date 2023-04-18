@@ -1,4 +1,4 @@
-use l9_vm::interpret;
+use brainterpreter::interpret;
 use log::{debug, error};
 use std::env;
 use std::error::Error;

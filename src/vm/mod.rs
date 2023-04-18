@@ -1,3 +1,5 @@
+//! Virtual machine for executing bytecode
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{stdout, Write};
@@ -46,6 +48,7 @@ pub enum VmRuntimeError {
     ArrayAccessError(#[from] TypeError),
 }
 
+/// Virtual machine to run programs
 pub struct Vm {
     stack: VmStack,
     globals: HashMap<String, ValueType>,
