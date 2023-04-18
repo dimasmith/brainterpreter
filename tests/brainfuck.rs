@@ -3,10 +3,10 @@ use std::error::Error;
 use std::fs::File;
 use std::rc::Rc;
 
-use l9_vm::compiler::Compiler;
-use l9_vm::lexer::Lexer;
-use l9_vm::parser::Parser;
-use l9_vm::vm::Vm;
+use brainterpreter::compiler::Compiler;
+use brainterpreter::lexer::Lexer;
+use brainterpreter::parser::Parser;
+use brainterpreter::vm::Vm;
 
 #[test]
 fn brainfuck_interpreter() {

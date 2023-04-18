@@ -1,4 +1,4 @@
-//! Virtual machine to support running l9 toy programming language
+//! Virtual machine to run programs
 use std::error::Error;
 
 use vm::Vm;

@@ -1,4 +1,4 @@
-//! Parser for the l9 interpreter
+//! Parser
 
 use std::iter::Peekable;
 

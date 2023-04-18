@@ -5,10 +5,10 @@ use std::rc::Rc;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use l9_vm::compiler::Compiler;
-use l9_vm::lexer::Lexer;
-use l9_vm::parser::Parser;
-use l9_vm::vm::Vm;
+use brainterpreter::compiler::Compiler;
+use brainterpreter::lexer::Lexer;
+use brainterpreter::parser::Parser;
+use brainterpreter::vm::Vm;
 
 fn interpret(source: &str) -> Result<(), Box<dyn Error>> {
     let lexer = Lexer::new(source);

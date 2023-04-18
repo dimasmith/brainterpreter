@@ -1,8 +1,8 @@
 [package]
-name = "l9_vm"
+name = "brainterpreter"
 version = "0.2.0"
 edition = "2021"
-description = "A virtual machine for the L9 programming language"
+description = "An interpreter for a toy programming language"
 authors = ["Dmytro Kovalchuk"]
 license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

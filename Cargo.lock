@@ -41,6 +41,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "brainterpreter"
+version = "0.2.0"
+dependencies = [
+ "criterion",
+ "env_logger",
+ "log",
+ "thiserror",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -328,16 +338,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "445dde2150c55e483f3d8416706b97ec8e8237c307e5b7b4b8dd15e6af2a0730"
 dependencies = [
  "wasm-bindgen",
-]
-
-[[package]]
-name = "l9_vm"
-version = "0.2.0"
-dependencies = [
- "criterion",
- "env_logger",
- "log",
- "thiserror",
 ]
 
 [[package]]

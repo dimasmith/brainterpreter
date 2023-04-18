@@ -1,6 +1,6 @@
 use log::error;
 
-use l9_vm::interpret;
+use brainterpreter::interpret;
 
 fn main() {
     env_logger::init();

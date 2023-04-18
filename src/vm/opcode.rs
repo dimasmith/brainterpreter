@@ -1,3 +1,4 @@
+//! Operations supported by the virtual machine
 use std::fmt::Display;
 
 use crate::value::ValueType;
@@ -84,6 +85,7 @@ impl Display for Op {
     }
 }
 
+/// A chunk of virtual machine instructions and constants.
 #[derive(Debug, Clone, Default)]
 pub struct Chunk {
     constants: Vec<ValueType>,
