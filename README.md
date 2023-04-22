@@ -1,5 +1,8 @@
 # Brainterpreter
 
+[![Rust](https://github.com/dimasmith/brainterpreter/actions/workflows/rust.yml/badge.svg)](https://github.com/dimasmith/brainterpreter/actions/workflows/rust.yml)
+[![codecov](https://codecov.io/gh/dimasmith/brainterpreter/branch/main/graph/badge.svg?token=ZCTAGTAWRJ)](https://codecov.io/gh/dimasmith/brainterpreter)
+
 An interpreter for a Bauble programming language.
 Created for TechIn talks in [Levi9](https://www.levi9.com/).
 
