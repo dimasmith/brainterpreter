@@ -35,3 +35,29 @@ Bauble is a toy programming language created specifically for a tech talk.
 Please check the [project pages](https://dimasmith.github.io/brainterpreter/) for some docs.
 
 Documenting is still very much in progress.
+
+## Running interpreter
+
+By default, the project builds as a library with all parts to run the interpreter.
+If you don't want to build your own binary, build brainterpreter with the `cli` feature enabled.
+
+```shell
+cargo build --features cli
+```
+
+The `cli` feature provides a `bauble` binary. 
+`bauble` runs the interpreter for a given source file.
+
+If you want to trace the virtual machine execution for your program, set logging level to `debug`:
+
+```shell
+RUST_LOG=debug bauble examples/hello_world.bbl
+```
+
+After the build the binary can be found in `target/debug/bauble` (or `target/release/bauble` if you build with `--release` flag).
+
+You can also run the interpreter with the `cargo run` command:
+
+```shell
+cargo run --features cli -- examples/hello_world.bbl
+```
