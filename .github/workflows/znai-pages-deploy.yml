@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           # Change `path` to `docs/target/<your-project-name>
-          path: 'docs/target/brainpreter'
+          path: 'docs/target/brainterpreter'
 
       # Publish artifact on GitHub pages
       - name: Deploy to GitHub Pages
