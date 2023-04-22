@@ -48,3 +48,75 @@ where
             .unwrap_or(Position::default())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexer::Lexer;
+
+    #[test]
+    fn parser_advance() {
+        let lexer = Lexer::new("1 + 2");
+        let mut parser = Parser::new(lexer);
+        assert_eq!(parser.advance(), Token::Number(1.0));
+        assert_eq!(parser.advance(), Token::Plus);
+        assert_eq!(parser.advance(), Token::Number(2.0));
+        assert_eq!(parser.advance(), Token::EndOfFile);
+    }
+
+    #[test]
+    fn consume_token() {
+        let tokens = vec![
+            SourceToken::new(Token::Number(1.0), Position::default()),
+            SourceToken::new(Token::Plus, Position::default()),
+            SourceToken::new(Token::Number(2.0), Position::default()),
+        ];
+        let mut parser = Parser::new(tokens.into_iter());
+        parser.advance();
+        parser.consume(&Token::Plus).unwrap();
+        assert_eq!(parser.peek(), &Token::Number(2.0));
+    }
+
+    #[test]
+    fn consume_wrong_token() {
+        let tokens = vec![
+            SourceToken::new(Token::Number(1.0), Position::default()),
+            SourceToken::new(Token::Plus, Position::default()),
+            SourceToken::new(Token::Number(2.0), Position::default()),
+        ];
+        let mut parser = Parser::new(tokens.into_iter());
+        parser.advance();
+        let result = parser.consume(&Token::Minus);
+
+        assert_eq!(
+            result,
+            Err(ParsingError::MissingToken {
+                position: Position::default(),
+                expected: Token::Minus,
+                actual: Token::Plus,
+            })
+        );
+    }
+
+    #[test]
+    fn advance_if_match() {
+        let tokens = vec![
+            SourceToken::new(Token::Plus, Position::default()),
+            SourceToken::new(Token::Number(2.0), Position::default()),
+        ];
+        let mut parser = Parser::new(tokens.into_iter());
+        parser.advance_if(Token::Plus);
+        assert_eq!(parser.peek(), &Token::Number(2.0));
+    }
+
+    #[test]
+    fn advance_if_no_match() {
+        let tokens = vec![
+            SourceToken::new(Token::Plus, Position::default()),
+            SourceToken::new(Token::Number(2.0), Position::default()),
+        ];
+        let mut parser = Parser::new(tokens.into_iter());
+        parser.advance_if(Token::Minus);
+        assert_eq!(parser.peek(), &Token::Plus);
+    }
+}
