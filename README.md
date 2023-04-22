@@ -1,21 +1,18 @@
 # Brainterpreter
 
-An interpreter for a toy programming language.
+An interpreter for a Bauble programming language.
 Created for TechIn talks in [Levi9](https://www.levi9.com/).
 
 NOTE: it is a sandbox of the implementation.
 I plan to deliver a new repository with the same functionality but better suited for education.
 
 An interpreter is created as an educational experiment.
-The main goal is to run the interpreter of [Brainfuck](https://esolangs.org/wiki/Brainfuck) written in this toy language. You can check a "hello, world" in `examples` section.
-
-## The language needs a name
-
-Please suggest one.
+The main goal is to run the interpreter of [Brainfuck](https://esolangs.org/wiki/Brainfuck) written in this toy language. 
+You can check a "hello, world" in `examples` section.
 
 ## What's inside?
 
-The repository containts parser, compiler, and virtual machine for a toy programming language.
+The repository containts parser, compiler, and virtual machine for a Bauble programming language.
 The language has C-like syntax. Supported features:
 
 - arithmetics;
@@ -25,9 +22,9 @@ The language has C-like syntax. Supported features:
 - while loop;
 - arrays;
 
-## Syntax reference
+## What's Bauble?
 
-In progress. Please take a look into the `examples` directory.
+Bauble is a toy programming language created specifically for a tech talk.
 
 ## Documentation
 
