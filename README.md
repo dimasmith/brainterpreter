@@ -31,4 +31,6 @@ In progress. Please take a look into the `examples` directory.
 
 ## Documentation
 
-Pending.
+Please check the [project pages](https://dimasmith.github.io/brainterpreter/) for some docs.
+
+Documenting is still very much in progress.
