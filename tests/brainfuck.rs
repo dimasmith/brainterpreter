@@ -11,7 +11,7 @@ use brainterpreter::vm::Vm;
 #[test]
 fn brainfuck_interpreter() {
     env_logger::init();
-    let source_file = File::open("examples/brainfuck.l9").unwrap();
+    let source_file = File::open("tests/brainfuck.bbl").unwrap();
     let src = std::io::read_to_string(source_file).unwrap();
     let io = interpret(&src).unwrap();
     let out = String::from_utf8(io).unwrap();
