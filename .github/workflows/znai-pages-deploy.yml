@@ -1,0 +1,55 @@
+name: Pulish Documentation
+
+on:
+  push:
+    paths:
+      - "docs/**" # Publish only when docs are changed
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest    
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: git fetch --prune --unshallow
+
+      # Set up java and maven
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          java-package: 'jdk'
+
+      # You'll need graphviz if you're generating diagrams
+      - name: Set up graphviz
+        run: sudo apt-get install graphviz
+
+      # Use virtual frame buffer to render images
+      - name: Build with xvfb enabled
+        uses: GabrielBB/xvfb-action@v1.0
+        # build documentation using maven. 
+        with:
+          run: mvn -B -f docs/pom.xml znai:build 
+
+      # Prepare pages for your repository
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      # Create pages artifact. Change `path` to `docs/target/<your-project-name>
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Change `path` to `docs/target/<your-project-name>
+          path: 'docs/target/brainpreter'
+
+      # Publish artifact on GitHub pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
