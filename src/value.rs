@@ -304,4 +304,72 @@ mod tests {
             "string does not support types other than string"
         );
     }
+
+    #[test]
+    fn values_as_string() {
+        let s = ValueType::Text(Box::new("hello".to_string()));
+        assert_eq!(s.as_string(), "hello");
+
+        let s = ValueType::Number(10.0);
+        assert_eq!(s.as_string(), "10");
+
+        let s = ValueType::Bool(true);
+        assert_eq!(s.as_string(), "true");
+
+        let s = ValueType::Nil;
+        assert_eq!(s.as_string(), "nil");
+
+        let s = ValueType::Address(10);
+        assert_eq!(s.as_string(), "10");
+
+        let s = ValueType::Function(Box::new(Function::new(
+            "test".to_string(),
+            Chunk::default(),
+            0,
+        )));
+        assert_eq!(s.as_string(), "test");
+
+        let s = ValueType::NativeFunction(Rc::new(NativeFunction::new("test", 0, |_vm| Ok(()))));
+        assert_eq!(s.as_string(), "test");
+
+        let s = ValueType::Array(Box::new(vec![ValueType::Number(10.0)]));
+        assert_eq!(s.as_string(), "[]");
+
+        let s = ValueType::ArrayRef(Rc::new(RefCell::new(vec![ValueType::Number(10.0)])));
+        assert_eq!(s.as_string(), "&[]");
+    }
+
+    #[test]
+    fn display() {
+        let s = ValueType::Text(Box::new("hello".to_string()));
+        assert_eq!(format!("{}", s), "s:hello");
+
+        let s = ValueType::Number(10.0);
+        assert_eq!(format!("{}", s), "f:10");
+
+        let s = ValueType::Bool(true);
+        assert_eq!(format!("{}", s), "b:true");
+
+        let s = ValueType::Nil;
+        assert_eq!(format!("{}", s), "nil");
+
+        let s = ValueType::Address(10);
+        assert_eq!(format!("{}", s), "*:10");
+
+        let s = ValueType::Function(Box::new(Function::new(
+            "test".to_string(),
+            Chunk::default(),
+            0,
+        )));
+        assert_eq!(format!("{}", s), "fn:test");
+
+        let s = ValueType::NativeFunction(Rc::new(NativeFunction::new("test", 0, |_vm| Ok(()))));
+        assert_eq!(format!("{}", s), "<native>fn:test");
+
+        let s = ValueType::Array(Box::new(vec![ValueType::Number(10.0)]));
+        assert_eq!(format!("{}", s), "[]");
+
+        let s = ValueType::ArrayRef(Rc::new(RefCell::new(vec![ValueType::Number(10.0)])));
+        assert_eq!(format!("{}", s), "&[]");
+    }
 }
