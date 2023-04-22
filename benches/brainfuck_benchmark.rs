@@ -23,7 +23,7 @@ fn interpret(source: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn brainfuck_benchmark(c: &mut Criterion) {
-    let source_file = File::open("benches/brainfuck.l9").unwrap();
+    let source_file = File::open("benches/brainfuck.bbl").unwrap();
     let src = std::io::read_to_string(source_file).unwrap();
     c.bench_function("brainfuck", |b| b.iter(|| interpret(black_box(&src))));
 }

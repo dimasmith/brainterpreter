@@ -1,4 +1,4 @@
-//! Virtual machine to run programs
+//! Interpreter for Bauble programming language
 use std::error::Error;
 
 use vm::Vm;
