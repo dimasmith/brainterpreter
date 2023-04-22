@@ -3,6 +3,7 @@
 [![Build](https://github.com/dimasmith/brainterpreter/actions/workflows/rust.yml/badge.svg)](https://github.com/dimasmith/brainterpreter/actions/workflows/rust.yml)
 [![Coverage](https://codecov.io/gh/dimasmith/brainterpreter/branch/main/graph/badge.svg?token=ZCTAGTAWRJ)](https://codecov.io/gh/dimasmith/brainterpreter)
 [![Documentation](https://github.com/dimasmith/brainterpreter/actions/workflows/znai-pages-deploy.yml/badge.svg)](https://github.com/dimasmith/brainterpreter/actions/workflows/znai-pages-deploy.yml)
+
 An interpreter for a Bauble programming language.
 Created for TechIn talks in [Levi9](https://www.levi9.com/).
 
