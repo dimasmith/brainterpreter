@@ -60,5 +60,5 @@ jobs:
           override: true
       - uses: actions-rs/tarpaulin@v0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest          
           args: --ignore-tests
