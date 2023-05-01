@@ -2,5 +2,8 @@ language
     syntax
 implementation
     components
+virtual-machine
+    architecture
+    instructions
 tools
     interpreter

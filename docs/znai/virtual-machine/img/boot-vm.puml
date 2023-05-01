@@ -1,0 +1,29 @@
+@startuml
+title Booting the virtual machine
+
+boundary "VM" as vm
+participant "Value Stack" as value_stack
+participant "Call Stack" as call_stack
+entity "Call Frame" as call_frame
+entity "Chunk" as chunk
+
+[-> vm : start with the chunk
+== boot ==
+create value_stack
+vm -> value_stack : allocate values
+create call_stack
+vm -> call_stack : allocate calls
+create call_frame
+vm -> call_frame : create main call frame
+vm -> call_stack : push main call frame
+== run ==
+loop
+vm -> call_frame : read instruction pointer
+vm <-- call_frame
+call_frame -> call_frame : increment instruction pointer
+vm -> chunk : read instruction
+vm <-- chunk
+vm -> vm : execute instruction
+end 
+
+@enduml
