@@ -60,6 +60,73 @@
 - test statement parser - (0b6af50) - Dmytro Kovalchuk
 
 - - -
+## v0.1.1 - 2023-05-01
+#### Bug Fixes
+- **(deps)** update rust crate clap to 4.2.5 - (93a87a0) - renovate[bot]
+- **(doc)** fix project name in doc configuration - (e0888ee) - Dmytro Kovalchuk
+- **(functions)** stop leaking value stack on function declaration - (44c1e60) - Dmytro Kovalchuk
+- **(globals)** stop leaking value stack on variable declaration - (1223c41) - Dmytro Kovalchuk
+- pop value of expression statements - (66f3914) - Dmytro Kovalchuk
+- remove complex array assignments - (439712b) - Dmytro Kovalchuk
+#### Continuous Integration
+- cache dependencies for testing and linting - (60b95f3) - Dmytro Kovalchuk
+- avoid tarpaulin compilation - (2cae88d) - Dmytro Kovalchuk
+- migrate from usnupported rs-actions - (eb5e4f2) - Dmytro Kovalchuk
+- ignore changes in docs - (3c707a5) - Dmytro Kovalchuk
+- add test coverage measurements - (824dc51) - Dmytro Kovalchuk
+- setup build pipeline for the project - (27ab20c) - Dmytro Kovalchuk
+- scaffold and action to publish docs - (3a4026b) - Dmytro Kovalchuk
+#### Documentation
+- **(build)** rename build badges - (63df92a) - Dmytro Kovalchuk
+- **(cli)** update about section of the cli - (ffbab44) - Dmytro Kovalchuk
+- **(cli)** document CLI usage - (6c1fd3b) - Dmytro Kovalchuk
+- **(vm)** add vm instructions reference - (dccc835) - Dmytro Kovalchuk
+- add note on implementation language - (f920c6f) - Dmytro Kovalchuk
+- add high-level implementation overview - (943224d) - Dmytro Kovalchuk
+- add brainterpreter part description - (64df3a4) - Dmytro Kovalchuk
+- add readme on documentation build - (28ab966) - Dmytro Kovalchuk
+- fix text alignment in README - (1919b74) - Dmytro Kovalchuk
+- add build status badges - (f59413b) - Dmytro Kovalchuk
+- rename the language - (26c5c66) - Dmytro Kovalchuk
+- add reference to project pages - (fbe8e15) - Dmytro Kovalchuk
+- add znai-based site - (20a5941) - Dmytro Kovalchuk
+- add README file - (c58819d) - Dmytro Kovalchuk
+#### Features
+- **(cli)** add verbose flag to interpreter cli - (e91dd59) - Dmytro Kovalchuk
+- **(cli)** add cli to run interpreter - (c1787c2) - Dmytro Kovalchuk
+#### Miscellaneous Chores
+- **(ci)** add renovate bot configuration - (c10d765) - renovate[bot]
+- **(deps)** update actions/setup-java action to v3 - (6f7f6f3) - renovate[bot]
+- **(deps)** update gabrielbb/xvfb-action action to v1.6 - (1ad7ab9) - renovate[bot]
+- **(deps)** update actions/checkout action to v3 - (aa8e734) - renovate[bot]
+- **(release)** bump package version - (dba8ca8) - Dmytro Kovalchuk
+- use cog to generate changelog - (971fdf2) - Dmytro Kovalchuk
+- exclude env_logger from lib dependencies - (695527a) - Dmytro Kovalchuk
+- bump version - (02fb6f2) - Dmytro Kovalchuk
+#### Performance Improvements
+- use shared references for arrays - (e47a3a7) - Dmytro Kovalchuk
+- add benchmarks - (836ae6d) - Dmytro Kovalchuk
+#### Refactoring
+- chage source files extensions - (9c74876) - Dmytro Kovalchuk
+- rename the package - (22daab4) - Dmytro Kovalchuk
+- encapsulate native function behaviour - (cf3bc53) - Dmytro Kovalchuk
+- remove unused ast elements - (e87efdb) - Dmytro Kovalchuk
+- use chunk reference instead of copying - (77fc7cd) - Dmytro Kovalchuk
+- move jump calculation to call frame - (b73c731) - Dmytro Kovalchuk
+- move call frame to separate file - (e8b2978) - Dmytro Kovalchuk
+- remove unnecessary error type - (9b8120f) - Dmytro Kovalchuk
+- start moving vm code to separate locations - (476f244) - Dmytro Kovalchuk
+- move vm back to module core - (aad4c18) - Dmytro Kovalchuk
+- extract expression parsing methods - (8aa59fd) - Dmytro Kovalchuk
+- use single statement for function - (447f6fe) - Dmytro Kovalchuk
+#### Tests
+- add tests for parser advance - (1077014) - Dmytro Kovalchuk
+- increase coverage - (072a27e) - Dmytro Kovalchuk
+- add expression parser tests - (7c092c1) - Dmytro Kovalchuk
+- test statement parser - (0b6af50) - Dmytro Kovalchuk
+
+- - -
+
 
 ## v0.1.0 - 2023-05-01
 #### Bug Fixes
