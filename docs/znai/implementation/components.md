@@ -12,6 +12,10 @@ E.g., you can use the parser to produce AST, but to replace the compiler with mo
 You may replace the virtual machine and compile to JVM class file instead.
 Or you may parse different language into the AST and use brainpreter VM to run your code.
 
+All the components are implemented in Rust programming language.
+The default build of the brainterpreter package contains a library crate with main components.
+You can use or replace components in your own programs.
+
 # Parser
 
 A parser is responsible for transforming the source code into the Abstract Syntax Tree (AST).
