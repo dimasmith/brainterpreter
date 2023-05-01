@@ -43,7 +43,13 @@ bauble hello.bbl
 The virtual machine provides a verbose diagnostic output while running the program.
 It produces the output in the `trace` logging level.
 
-Enable the trace output by setting the `RUST_LOG` environment variable to `trace` level.
+Enable the trace output by using the `--trace` flag of the interpreter cli.
+
+```shell
+bauble --trace hello.bbl
+```
+
+Alternatively, you can enable the trace output by setting the `RUST_LOG` environment variable to `trace` level.
 
 The example for nix systems:
 
