@@ -1,4 +1,6 @@
 language
     syntax
+implementation
+    components
 tools
     interpreter
