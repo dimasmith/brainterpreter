@@ -328,6 +328,7 @@ impl Compiler {
             .add_constant(ValueType::Function(Box::new(function)));
         self.chunk.add_op(Op::Const(n));
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.chunk.add_op(Op::Pop);
         Ok(())
     }
 

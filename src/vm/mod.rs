@@ -70,6 +70,7 @@ impl Vm {
         self.frames.push(call_frame);
         self.stack.push(ValueType::Function(Box::new(script)));
         self.run()?;
+        self.stack.pop()?;
         Ok(())
     }
 
