@@ -7,7 +7,8 @@ use std::io::Read;
 
 #[derive(Parser, Debug)]
 #[command(name = "bauble")]
-#[command(author, version, about, long_about = None)]
+#[command(about = "Interpret bauble source file")]
+#[command(author, version, long_about = None)]
 struct Args {
     /// The source file to run
     source: String,
