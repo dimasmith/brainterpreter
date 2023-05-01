@@ -127,6 +127,7 @@ impl Compiler {
 
         self.expression(value)?;
         self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.chunk.add_op(Op::Pop);
         Ok(())
     }
 
@@ -446,6 +447,7 @@ mod tests {
             vec![
                 Op::ConstFloat(1.0),
                 Op::StoreGlobal("a".to_string()),
+                Op::Pop,
                 Op::LoadGlobal("a".to_string()),
                 Op::StoreLocal(0),
                 Op::Pop,
