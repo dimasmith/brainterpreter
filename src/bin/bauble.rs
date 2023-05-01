@@ -1,6 +1,7 @@
 use brainterpreter::interpret;
 use clap::{command, Parser};
-use log::{debug, error};
+use env_logger::Builder;
+use log::{debug, error, LevelFilter};
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
@@ -12,11 +13,18 @@ use std::io::Read;
 struct Args {
     /// The source file to run
     source: String,
+    /// Enable trace output of the virtual machine.
+    #[arg(long)]
+    trace: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init();
     let args = Args::parse();
+    if args.trace {
+        Builder::new().filter_level(LevelFilter::max()).init();
+    } else {
+        env_logger::init();
+    }
 
     if let Err(e) = run(&args) {
         error!("{}", e);
