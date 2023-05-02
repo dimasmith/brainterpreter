@@ -51,7 +51,7 @@ The `cli` feature provides a `bauble` binary.
 If you want to trace the virtual machine execution for your program, set logging level to `debug`:
 
 ```shell
-RUST_LOG=debug bauble examples/hello_world.bbl
+RUST_LOG=debug bauble examples/hello_world.bbl run
 ```
 
 After the build the binary can be found in `target/debug/bauble` (or `target/release/bauble` if you build with `--release` flag).
