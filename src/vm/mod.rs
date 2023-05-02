@@ -16,6 +16,7 @@ use crate::vm::opcode::{Chunk, Op};
 use crate::vm::trace::VmStepTrace;
 
 mod call;
+pub mod disassembler;
 mod native;
 pub mod opcode;
 mod stack;
