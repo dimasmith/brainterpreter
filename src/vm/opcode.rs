@@ -69,15 +69,15 @@ impl Display for Op {
             Op::Ge => write!(f, "GE"),
             Op::Not => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
-            Op::LoadGlobal(name) => write!(f, "LD_G {}", name),
-            Op::StoreGlobal(name) => write!(f, "ST_G {}", name),
-            Op::LoadLocal(idx) => write!(f, "LD_L {}", idx),
-            Op::StoreLocal(idx) => write!(f, "ST_L {}", idx),
+            Op::LoadGlobal(name) => write!(f, "LD_G, {}", name),
+            Op::StoreGlobal(name) => write!(f, "ST_G, {}", name),
+            Op::LoadLocal(idx) => write!(f, "LD_L, {}", idx),
+            Op::StoreLocal(idx) => write!(f, "ST_L, {}", idx),
             Op::Pop => write!(f, "POP"),
             Op::Return => write!(f, "RET"),
-            Op::Call(arity) => write!(f, "CALL {}", arity),
-            Op::Jump(offset) => write!(f, "JMP {}", offset),
-            Op::JumpIfFalse(offset) => write!(f, "JZ {}", offset),
+            Op::Call(arity) => write!(f, "CALL, {}", arity),
+            Op::Jump(offset) => write!(f, "JMP, {}", offset),
+            Op::JumpIfFalse(offset) => write!(f, "JZ, {}", offset),
             Op::LoadIndex => write!(f, "LD_IDX"),
             Op::StoreIndex => write!(f, "ST_IDX"),
             Op::Array => write!(f, "ARR"),
@@ -121,6 +121,10 @@ impl Chunk {
 
     pub fn constant(&self, idx: usize) -> Option<&ValueType> {
         self.constants.get(idx)
+    }
+
+    pub fn constants(&self) -> &Vec<ValueType> {
+        &self.constants
     }
 
     pub fn len(&self) -> usize {
