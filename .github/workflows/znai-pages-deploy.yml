@@ -1,9 +1,11 @@
-name: Pulish Documentation
+name: Publish Documentation
 
 on:
   push:
     paths:
       - "docs/**" # Publish only when docs are changed
+    branches:
+      - main # Publish only when changes are pushed to main branch
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
