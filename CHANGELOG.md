@@ -1,4 +1,17 @@
-## v0.1.1 - 2023-05-01
+## Unreleased (16c2750..fb1ec06)
+#### Bug Fixes
+- **(deps)** update rust crate clap to 4.2.7 - (b4b0d3f) - renovate[bot]
+#### Documentation
+- **(changelog)** describe disassembler - (fb1ec06) - Dmytro Kovalchuk
+- **(changelog)** move changes to a proper release - (16c2750) - Dmytro Kovalchuk
+- **(cli)** describe disassembling source files - (c221e5b) - Dmytro Kovalchuk
+#### Features
+- **(cli)** disassemble source files - (766c4cf) - Dmytro Kovalchuk
+- disassemble executable chunks - (e21c516) - Dmytro Kovalchuk
+
+- - -
+
+## v0.1.1 - 2023-05-02
 #### Bug Fixes
 - **(deps)** update rust crate clap to 4.2.5 - (93a87a0) - renovate[bot]
 - **(doc)** fix project name in doc configuration - (e0888ee) - Dmytro Kovalchuk
@@ -66,7 +79,7 @@
 
 - - -
 
-## v0.1.0 - 2023-05-01
+## v0.1.0 - 2023-05-02
 #### Bug Fixes
 - pop value on variable assignment - (efd38cf) - Dmytro Kovalchuk
 - replace offset value in stack - (fd4aa1c) - Dmytro Kovalchuk
