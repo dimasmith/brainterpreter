@@ -1,0 +1,7 @@
+fun greet(name) {
+    let greeting = "Hello, ";
+    let text = greeting + name + "!";
+    return text;
+}
+
+print greet("World");
