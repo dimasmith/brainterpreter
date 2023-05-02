@@ -31,7 +31,7 @@ fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result
             o => writeln!(w, "\t{:04x}\t{}", line, o)?,
         }
     }
-    writeln!(w, "")?;
+    writeln!(w)?;
     for function in functions.iter() {
         disassemble_function(function.chunk(), function.name(), w)?;
     }
@@ -47,7 +47,7 @@ mod tests {
 
     fn test_disassemble(chunk: &Chunk) -> String {
         let mut w = BufWriter::new(vec![]);
-        disassemble(&chunk, &mut w).unwrap();
+        disassemble(chunk, &mut w).unwrap();
         let buf = w.into_inner().unwrap();
         String::from_utf8(buf).unwrap()
     }
@@ -66,13 +66,13 @@ mod tests {
     #[test]
     fn disassemble_instructions_with_parameters() {
         let mut chunk = Chunk::default();
-        chunk.add_op(Op::ConstFloat(3.14));
+        chunk.add_op(Op::ConstFloat(3.42));
         chunk.add_op(Op::ConstBool(true));
 
         let out = test_disassemble(&chunk);
         let mut lines = out.lines();
 
-        assert_eq!(lines.nth(3), Some("\t0000\tCONST_F, 3.14"));
+        assert_eq!(lines.nth(3), Some("\t0000\tCONST_F, 3.42"));
         assert_eq!(lines.next(), Some("\t0001\tCONST_B, true"));
     }
 
