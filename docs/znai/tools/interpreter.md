@@ -35,7 +35,7 @@ print "Hello, World!";
 Run it with the command.
 
 ```shell
-bauble hello.bbl
+bauble hello.bbl run
 ```
 
 # Viewing virtual machine trace
@@ -46,7 +46,7 @@ It produces the output in the `trace` logging level.
 Enable the trace output by using the `--trace` flag of the interpreter cli.
 
 ```shell
-bauble --trace hello.bbl
+bauble --trace hello.bbl run
 ```
 
 Alternatively, you can enable the trace output by setting the `RUST_LOG` environment variable to `trace` level.
@@ -73,4 +73,24 @@ The diagnostic output of the VM looks includes instructions window and the stack
 [DEBUG brainterpreter::log] 3:	f:0
 [DEBUG brainterpreter::log] 4:	f:0
 ```
+Note: Tracing makes program execution extremely slow.
+
+# Disassembling chunks
+
+You can see the assembly representation of your code.
+Run the following command to print assembly code to the standard output.
+
+```shell
+bauble source.bbl disassemble
+```
+# Example
+
+```columns
+left:
+:include-file: src/greetings.bbl {title: "Source code"}
+
+right:
+:include-file: src/greetings.basm {title: "Assembly"}
+```
+
 
