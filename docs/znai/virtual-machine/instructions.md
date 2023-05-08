@@ -83,17 +83,16 @@ Note that the offset can be negative.
 
 # Global variables
 
-Global variable instructions access global variables by the name.
+Global variable instructions access global variables by the name. 
+Compiler places the variable name into constants pool of bytecode chunk.
 
 Loading the variable places the value on stack.
 Storing the variable replaces the value in globals map via the topmost value on the stack.
 
 | Mnemonics | Parameters | Effect |
 | :--- | :---- | :--- |
-| `LD_G <name>` | name - the name of the variable | Copies the value of the global variable onto the stack |
-| `ST_G <name>` | name - the name of the variable | Copies the value from the top of the stack to the globals map |
-
-Warning: the mnemonics of globals instructions is about to change. The `name` parameter will refer to the index in the constant pool rather than the actual variable name.
+| `LD_G <idx>` | idx - constant index containing variable name | Copies the value of the global variable onto the stack |
+| `ST_G <idx>` | idx - constant index containing variable name | Copies the value from the top of the stack to the globals map |
 
 # Local variables
 
