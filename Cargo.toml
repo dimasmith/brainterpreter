@@ -1,10 +1,13 @@
 [package]
 name = "brainterpreter"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "An interpreter for a Bauble toy programming language"
 authors = ["Dmytro Kovalchuk"]
 license = "MIT"
+repository = "https://github.com/dimasmith/brainterpreter"
+homepage = "https://dimasmith.github.io/brainterpreter/"
+documentation = "https://docs.rs/brainterpreter"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
