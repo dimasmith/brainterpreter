@@ -145,6 +145,16 @@ impl ValueType {
     }
 }
 
+// Set of helper functions to build value types easier
+impl ValueType {
+    pub fn string<T>(value: T) -> ValueType
+    where
+        T: Into<String>,
+    {
+        ValueType::Text(Box::new(value.into()))
+    }
+}
+
 impl Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
