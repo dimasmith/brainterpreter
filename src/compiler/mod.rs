@@ -455,7 +455,7 @@ mod tests {
                 Op::ConstFloat(1.0),
                 Op::StoreGlobal(0),
                 Op::Pop,
-                Op::LoadGlobal(1),
+                Op::LoadGlobal(0),
                 Op::StoreLocal(0),
                 Op::Pop,
             ]
