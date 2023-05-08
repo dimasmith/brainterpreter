@@ -60,3 +60,11 @@ But it was hard to represent various aspects of parsing using Brainfuck.
 So I decided to create a simple procedural programming language and implement the Brainfuck interpreter using that language.
 
 That's how the Brainterpreter was created.
+
+# Inspiration
+
+[Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom is an incredible source of inspiration for creating programming languages. Bauble was born from this inspiration. In "Crafting Interpreters", Robert builds a `Lox` programming language. Lox is similar to Bauble but much more robust and complete. The book provides two implementations of Lox, one in Java and one in C, each with its unique approach. The Java implementation constructs an AST and executes it using JVM, while the C implementation requires building every aspect of the language from the lexer to the virtual machine. 
+
+Brainterpreter is based on the C implementation of Lox. It has a different parser implementation that builds an AST, while Lox compiles directly from the parser in its C implementation.
+
+If you're interested in creating programming languages but don't know where to start, "Crafting Interpreters" is a must-read.
