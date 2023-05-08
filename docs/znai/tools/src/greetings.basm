@@ -1,24 +1,30 @@
 fn:$main$:
 constants:
-	0000	fn:greet
-	0001	s:World
+	0000	s:!
+	0001	s:ending
+	0002	fn:greet
+	0003	s:greet
+	0004	s:World
 code:
 	0000	CONST, 0
-	0001	ST_G, greet
+	0001	ST_G, 1 # ending
 	0002	POP
-	0003	LD_G, greet
-	0004	CONST, 1
-	0005	CALL, 1
-	0006	PRN
+	0003	CONST, 2
+	0004	ST_G, 3 # greet
+	0005	POP
+	0006	LD_G, 3 # greet
+	0007	CONST, 4
+	0008	CALL, 1
+	0009	PRN
 
 fn:greet:
 constants:
 	0000	s:Hello, 
-	0001	s:!
+	0001	s:ending
 code:
 	0000	CONST, 0
 	0001	ST_L, 1
-	0002	CONST, 1
+	0002	LD_G, 1 # ending
 	0003	LD_L, 0
 	0004	LD_L, 1
 	0005	ADD
@@ -30,4 +36,3 @@ code:
 	000b	POP
 	000c	CONST_NIL
 	000d	RET
-

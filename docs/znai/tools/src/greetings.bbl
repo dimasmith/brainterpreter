@@ -1,6 +1,8 @@
+let ending = "!";
+
 fun greet(name) {
     let greeting = "Hello, ";
-    let text = greeting + name + "!";
+    let text = greeting + name + ending;
     return text;
 }
 

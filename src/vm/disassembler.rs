@@ -28,6 +28,10 @@ fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result
                 let address = line.checked_add_signed(*offset as isize).unwrap();
                 writeln!(w, "\t{:04x}\t{} # {:04x}", line, op, address)?;
             }
+            Op::StoreGlobal(idx) | Op::LoadGlobal(idx) => {
+                let var_name = chunk.constant(*idx).unwrap().as_string();
+                writeln!(w, "\t{:04x}\t{} # {}", line, op, var_name)?;
+            }
             o => writeln!(w, "\t{:04x}\t{}", line, o)?,
         }
     }
