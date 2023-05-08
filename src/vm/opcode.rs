@@ -113,6 +113,15 @@ impl Chunk {
     }
 
     pub fn add_constant(&mut self, value: ValueType) -> usize {
+        let i = self
+            .constants
+            .iter()
+            .enumerate()
+            .find(|(_, v)| **v == value)
+            .map(|(i, _)| i);
+        if let Some(idx) = i {
+            return idx;
+        }
         self.constants.push(value);
         self.constants.len() - 1
     }
@@ -240,5 +249,22 @@ mod tests {
         chunk.patch_jump_to(jump_address, target_address);
 
         assert_eq!(chunk.op(jump_address), Some(&Op::Jump(-3)));
+    }
+
+    #[test]
+    fn reuse_constant_pool_entries() {
+        let mut chunk = Chunk::default();
+        let foo_index = chunk.add_constant(ValueType::string("foo"));
+        let bar_index = chunk.add_constant(ValueType::string("bar"));
+        let duplicate_index = chunk.add_constant(ValueType::string("foo"));
+
+        assert_eq!(
+            foo_index, duplicate_index,
+            "constant pool put duplicate entry in a separate constant pool entry"
+        );
+        assert_ne!(
+            foo_index, bar_index,
+            "constant pool put different constants in the same entry"
+        );
     }
 }
