@@ -1,0 +1,13 @@
+name: Pre-Release
+on:
+  release:
+    types:
+      - prereleased
+jobs:
+  dryRun:
+    name: Dry Run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --dry-run
