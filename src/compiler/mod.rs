@@ -84,7 +84,7 @@ impl Compiler {
                 return Ok(());
             }
         }
-        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.store_global(name);
         Ok(())
     }
 
@@ -95,7 +95,7 @@ impl Compiler {
                 return Ok(());
             }
         }
-        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.store_global(name);
         Ok(())
     }
 
@@ -109,7 +109,7 @@ impl Compiler {
             return Ok(());
         }
         self.chunk.add_op(Op::Nil);
-        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.store_global(name);
         Ok(())
     }
 
@@ -126,7 +126,7 @@ impl Compiler {
         }
 
         self.expression(value)?;
-        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.store_global(name);
         self.chunk.add_op(Op::Pop);
         Ok(())
     }
@@ -251,7 +251,7 @@ impl Compiler {
             self.chunk.add_op(Op::LoadLocal(local));
             return;
         }
-        self.chunk.add_op(Op::LoadGlobal(name.to_string()));
+        self.load_global(name);
     }
 
     fn block(&mut self, statements: &Vec<Statement>) -> CompilationResult {
@@ -327,13 +327,13 @@ impl Compiler {
             .chunk
             .add_constant(ValueType::Function(Box::new(function)));
         self.chunk.add_op(Op::Const(n));
-        self.chunk.add_op(Op::StoreGlobal(name.to_string()));
+        self.store_global(name);
         self.chunk.add_op(Op::Pop);
         Ok(())
     }
 
     fn function_call(&mut self, name: &str, args: &Vec<Expression>) -> CompilationResult {
-        self.chunk.add_op(Op::LoadGlobal(name.to_string()));
+        self.load_global(name);
         for arg in args {
             self.expression(arg)?;
         }
@@ -345,6 +345,16 @@ impl Compiler {
         self.expression(expression)?;
         self.chunk.add_op(Op::Return);
         Ok(())
+    }
+
+    fn load_global(&mut self, name: &str) {
+        let const_idx = self.chunk.add_constant(ValueType::string(name));
+        self.chunk.add_op(Op::LoadGlobal(const_idx));
+    }
+
+    fn store_global(&mut self, name: &str) {
+        let const_idx = self.chunk.add_constant(ValueType::string(name));
+        self.chunk.add_op(Op::StoreGlobal(const_idx));
     }
 }
 
@@ -366,11 +376,7 @@ mod tests {
 
         assert_eq!(
             ops,
-            vec![
-                &Op::ConstFloat(42.0),
-                &Op::StoreGlobal("a".to_string()),
-                &Op::Pop
-            ]
+            vec![&Op::ConstFloat(42.0), &Op::StoreGlobal(0), &Op::Pop]
         );
     }
 
@@ -447,9 +453,9 @@ mod tests {
             opcodes,
             vec![
                 Op::ConstFloat(1.0),
-                Op::StoreGlobal("a".to_string()),
+                Op::StoreGlobal(0),
                 Op::Pop,
-                Op::LoadGlobal("a".to_string()),
+                Op::LoadGlobal(1),
                 Op::StoreLocal(0),
                 Op::Pop,
             ]

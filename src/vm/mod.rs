@@ -108,8 +108,8 @@ impl Vm {
                 }
                 Op::Not => self.not()?,
                 Op::Print => self.print()?,
-                Op::StoreGlobal(name) => self.store_global(name.clone())?,
-                Op::LoadGlobal(name) => self.load_global(name.clone())?,
+                Op::StoreGlobal(idx) => self.store_global(idx)?,
+                Op::LoadGlobal(idx) => self.load_global(idx)?,
                 Op::StoreLocal(offset) => self.store_local(offset)?,
                 Op::LoadLocal(offset) => self.load_local(offset)?,
                 Op::Jump(offset) => self.jump(offset)?,
@@ -204,13 +204,32 @@ impl Vm {
             .map_err(VmRuntimeError::IoError)
     }
 
-    fn store_global(&mut self, name: String) -> VmResult {
+    fn constant_entry(&self, idx: usize) -> Result<&ValueType, VmRuntimeError> {
+        let value = self
+            .chunk()
+            .constant(idx)
+            .ok_or(VmRuntimeError::UndefinedConstant(idx))?;
+        Ok(value)
+    }
+
+    fn variable_name(&self, idx: usize) -> Result<String, VmRuntimeError> {
+        let value = self.constant_entry(idx)?;
+        if let ValueType::Text(name) = value {
+            Ok(name.to_string())
+        } else {
+            Err(VmRuntimeError::TypeMismatch)
+        }
+    }
+
+    fn store_global(&mut self, idx: usize) -> VmResult {
+        let name = self.variable_name(idx)?;
         let value = self.stack.peek(0).ok_or(VmRuntimeError::StackExhausted)?;
         self.globals.insert(name, value.clone());
         Ok(())
     }
 
-    fn load_global(&mut self, name: String) -> VmResult {
+    fn load_global(&mut self, idx: usize) -> VmResult {
+        let name = self.variable_name(idx)?;
         let value = self
             .globals
             .get(&name)

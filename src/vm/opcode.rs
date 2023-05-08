@@ -35,9 +35,11 @@ pub enum Op {
     /// Prints value on top of the stack.
     Print,
     /// Takes the value from the top of the stack and stores it in the global variable.
-    StoreGlobal(String),
+    /// The name of the variable is taken from the constant pool.
+    StoreGlobal(usize),
     /// Load global variable value onto the stack.
-    LoadGlobal(String),
+    /// The name of the variable is taken from the constant pool.
+    LoadGlobal(usize),
     /// Takes the value from the top of the stack and stores it in the local variable.
     StoreLocal(usize),
     /// Load local variable value onto the stack.
@@ -69,8 +71,8 @@ impl Display for Op {
             Op::Ge => write!(f, "GE"),
             Op::Not => write!(f, "NEG"),
             Op::Print => write!(f, "PRN"),
-            Op::LoadGlobal(name) => write!(f, "LD_G, {}", name),
-            Op::StoreGlobal(name) => write!(f, "ST_G, {}", name),
+            Op::LoadGlobal(idx) => write!(f, "LD_G, {}", idx),
+            Op::StoreGlobal(idx) => write!(f, "ST_G, {}", idx),
             Op::LoadLocal(idx) => write!(f, "LD_L, {}", idx),
             Op::StoreLocal(idx) => write!(f, "ST_L, {}", idx),
             Op::Pop => write!(f, "POP"),
