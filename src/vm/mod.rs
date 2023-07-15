@@ -387,7 +387,7 @@ impl Vm {
 
 impl Default for Vm {
     fn default() -> Self {
-        let tracer = LoggingTracer::default();
+        let tracer = LoggingTracer;
         let out = stdout();
         let mut vm = Vm {
             stack: VmStack::default(),

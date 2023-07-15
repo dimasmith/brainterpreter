@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fs::File;
 use std::rc::Rc;
 
-use brainterpreter::ast::Program;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use brainterpreter::compiler::Compiler;
