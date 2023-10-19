@@ -45,7 +45,7 @@ where
         self.tokens
             .peek()
             .map(|t| *t.source())
-            .unwrap_or(Position::default())
+            .unwrap_or_default()
     }
 }
 
