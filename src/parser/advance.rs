@@ -42,10 +42,7 @@ where
     }
 
     pub fn last_position(&mut self) -> Position {
-        self.tokens
-            .peek()
-            .map(|t| *t.source())
-            .unwrap_or_default()
+        self.tokens.peek().map(|t| *t.source()).unwrap_or_default()
     }
 }
 
