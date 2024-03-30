@@ -42,7 +42,7 @@ jobs:
 
       # Prepare pages for your repository
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       
       # Create pages artifact. Change `path` to `docs/target/<your-project-name>
       - name: Upload artifact
