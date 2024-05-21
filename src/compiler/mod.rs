@@ -9,13 +9,16 @@ use crate::value::{Function, ValueType};
 use crate::vm::exec::Chunk;
 use crate::vm::opcode::Op;
 
+use self::chunk::ChunkBuilder;
+
+mod chunk;
 mod locals;
 
 type CompilationResult = Result<(), CompileError>;
 
 #[derive(Debug, Clone, Default)]
 pub struct Compiler {
-    chunk: Chunk,
+    chunk: ChunkBuilder,
     locals: Locals,
 }
 
@@ -44,7 +47,15 @@ impl Compiler {
         for statement in program.statements() {
             self.statement(statement)?;
         }
-        Ok(self.chunk.clone())
+        // TODO: fix this ugly clone
+        Ok(self.chunk.clone().build())
+    }
+
+    fn compile_part(mut self, program: Program) -> Result<ChunkBuilder, CompileError> {
+        for statement in program.statements() {
+            self.statement(statement)?;
+        }
+        Ok(self.chunk)
     }
 
     fn statement(&mut self, ast: &Statement) -> CompilationResult {
@@ -287,7 +298,7 @@ impl Compiler {
 
         if let Some(otherwise) = otherwise {
             let else_jump = self.chunk.add_op(Op::Jump(0));
-            let jump_offset = self.chunk.last_index() - then_jump;
+            let jump_offset = self.chunk.last_op_address() - then_jump;
             self.chunk.patch_jump(then_jump, jump_offset as i32);
             self.statement(otherwise)?;
             self.chunk.patch_jump_to_last(else_jump);
@@ -298,7 +309,7 @@ impl Compiler {
     }
 
     fn while_statement(&mut self, condition: &Expression, body: &Statement) -> CompilationResult {
-        let loop_start = self.chunk.last_index();
+        let loop_start = self.chunk.last_op_address();
         self.expression(condition)?;
         let exit_jump = self.chunk.add_op(Op::JumpIfFalse(0));
         self.statement(body)?;
@@ -320,9 +331,10 @@ impl Compiler {
             function_compiler.declare_variable(param)?;
         }
         let function_program = Program::new(vec![body.clone()]);
-        let mut chunk = function_compiler.compile_program(function_program)?;
-        chunk.add_op(Op::Nil);
-        chunk.add_op(Op::Return);
+        let mut chunk_builder = function_compiler.compile_part(function_program)?;
+        chunk_builder.add_op(Op::Nil);
+        chunk_builder.add_op(Op::Return);
+        let chunk = chunk_builder.build();
         let function = Function::new(name.to_string(), chunk, params.len());
         let n = self
             .chunk

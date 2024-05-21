@@ -59,8 +59,7 @@ mod tests {
 
     #[test]
     fn disassemble_single_instruction() {
-        let mut chunk = Chunk::default();
-        chunk.add_op(Op::Return);
+        let chunk = Chunk::new([Op::Return], []);
 
         let out = test_disassemble(&chunk);
         let mut lines = out.lines();
@@ -70,9 +69,7 @@ mod tests {
 
     #[test]
     fn disassemble_instructions_with_parameters() {
-        let mut chunk = Chunk::default();
-        chunk.add_op(Op::ConstFloat(3.42));
-        chunk.add_op(Op::ConstBool(true));
+        let chunk = Chunk::new([Op::ConstFloat(3.42), Op::ConstBool(true)], []);
 
         let out = test_disassemble(&chunk);
         let mut lines = out.lines();
@@ -83,11 +80,15 @@ mod tests {
 
     #[test]
     fn disassemble_jump_instructions() {
-        let mut chunk = Chunk::default();
-        chunk.add_op(Op::ConstFloat(5.0));
-        chunk.add_op(Op::ConstFloat(1.0));
-        chunk.add_op(Op::Add);
-        chunk.add_op(Op::Jump(-2));
+        let chunk = Chunk::new(
+            [
+                Op::ConstFloat(5.0),
+                Op::ConstFloat(1.0),
+                Op::Add,
+                Op::Jump(-2),
+            ],
+            [],
+        );
 
         let out = test_disassemble(&chunk);
         let mut lines = out.lines();
@@ -97,9 +98,10 @@ mod tests {
 
     #[test]
     fn disassemble_string_constants() {
-        let mut chunk = Chunk::default();
-        chunk.add_constant(ValueType::Text(Box::new(String::from("Hello, World!"))));
-        chunk.add_op(Op::Const(0));
+        let chunk = Chunk::new(
+            [Op::Const(0)],
+            [ValueType::Text(Box::new(String::from("Hello, World!")))],
+        );
 
         let out = test_disassemble(&chunk);
         let mut lines = out.lines();
@@ -109,21 +111,17 @@ mod tests {
 
     #[test]
     fn disassemble_functions() {
-        let mut function_chunk = Chunk::default();
-        function_chunk.add_constant(ValueType::Text(Box::new(String::from("Hello"))));
-        function_chunk.add_op(Op::Const(0));
-        function_chunk.add_op(Op::Return);
+        let function_chunk = Chunk::new(
+            [Op::Const(0), Op::Return],
+            [ValueType::Text(Box::new(String::from("Hello")))],
+        );
         let function = ValueType::Function(Box::new(Function::new(
             "greet".to_string(),
             function_chunk,
             0,
         )));
 
-        let mut script_chunk = Chunk::default();
-        script_chunk.add_constant(function);
-        script_chunk.add_op(Op::Const(0));
-        script_chunk.add_op(Op::Call(0));
-        script_chunk.add_op(Op::Print);
+        let script_chunk = Chunk::new([Op::Const(0), Op::Call(0), Op::Print], [function]);
 
         let out = test_disassemble(&script_chunk);
         let mut lines = out.lines();
