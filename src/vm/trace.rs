@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use crate::vm::opcode::Chunk;
+use crate::vm::exec::Chunk;
 use crate::vm::VmStack;
 
 pub trait VmStepTrace: Debug {

@@ -1,6 +1,6 @@
 use std::num::IntErrorKind;
 
-use crate::vm::opcode::{Chunk, Op};
+use super::{exec::Chunk, opcode::Op};
 
 #[derive(Debug)]
 pub struct CallFrame {

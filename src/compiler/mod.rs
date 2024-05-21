@@ -6,7 +6,8 @@ use locals::Locals;
 
 use crate::ast::{BinaryOperator, Expression, Program, Statement, UnaryOperator};
 use crate::value::{Function, ValueType};
-use crate::vm::opcode::{Chunk, Op};
+use crate::vm::exec::Chunk;
+use crate::vm::opcode::Op;
 
 mod locals;
 

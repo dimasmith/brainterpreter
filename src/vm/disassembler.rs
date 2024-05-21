@@ -3,7 +3,8 @@
 //! It's a diagnostic tool to help find issues in compiled code.
 
 use crate::value::ValueType;
-use crate::vm::opcode::{Chunk, Op};
+use crate::vm::exec::Chunk;
+use crate::vm::opcode::Op;
 use std::io::{Error, Write};
 
 /// Disassemble executable chunk into VM assembly.

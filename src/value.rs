@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use thiserror::Error;
 
-use crate::vm::opcode::Chunk;
+use crate::vm::exec::Chunk;
 use crate::vm::{Vm, VmRuntimeError};
 
 #[derive(Debug, Clone, PartialEq)]

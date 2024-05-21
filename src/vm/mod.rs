@@ -11,12 +11,14 @@ use call::CallFrame;
 
 use crate::log::LoggingTracer;
 use crate::value::{Function, NativeFunction, TypeError, ValueType};
+use crate::vm::exec::Chunk;
 use crate::vm::native::std_lib;
-use crate::vm::opcode::{Chunk, Op};
+use crate::vm::opcode::Op;
 use crate::vm::trace::VmStepTrace;
 
 mod call;
 pub mod disassembler;
+pub mod exec;
 mod native;
 pub mod opcode;
 mod stack;
