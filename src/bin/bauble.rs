@@ -9,6 +9,7 @@ use log::{debug, error, LevelFilter};
 use std::error::Error;
 use std::fs::File;
 use std::io::{stdout, Read};
+use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 #[command(name = "bauble")]
@@ -21,7 +22,7 @@ struct Args {
     #[command(subcommand)]
     command: Commands,
     /// The source file to run
-    source: String,
+    source_path: PathBuf,
 }
 
 #[derive(Subcommand, Debug, Default)]
@@ -54,13 +55,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn Error>> {
-    let source = read_source_from_file(&args.source)?;
+    let source = read_source_from_file(&args.source_path)?;
     interpret(&source)?;
     Ok(())
 }
 
-fn read_source_from_file(path: &str) -> Result<String, Box<dyn Error>> {
-    debug!("running file: {}", path);
+fn read_source_from_file(path: &Path) -> Result<String, Box<dyn Error>> {
+    debug!("running file: {}", path.display());
     let mut source = String::new();
     let mut file = File::open(path)?;
     file.read_to_string(&mut source)?;
@@ -68,7 +69,7 @@ fn read_source_from_file(path: &str) -> Result<String, Box<dyn Error>> {
 }
 
 fn disassemble_file(args: &Args) -> Result<(), Box<dyn Error>> {
-    let source = read_source_from_file(&args.source)?;
+    let source = read_source_from_file(&args.source_path)?;
     let lexer = Lexer::new(&source);
     let mut parser = BaubleParser::new(lexer);
     let ast = parser.parse_program()?;
