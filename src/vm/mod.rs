@@ -71,22 +71,21 @@ impl Vm {
     pub fn load_and_run(&mut self, chunk: Rc<Chunk>) -> VmResult {
         let call_frame = CallFrame::new(chunk.clone(), 0);
         self.frames.push(call_frame);
-        self.stack.push(ValueType::Function(Box::new(Function::script(chunk.clone()))));
-        self.run()?;
+
+        // Create a virtual function and place it on stack.
+        // Local variable allocation relies on the fact that the function is placed on the top
+        // of call frame stack section.
+        // When running script directly it is not the case and the local variable
+        // allocation fails.
+        // Having a virtual function prevents this issue.
+        let virtual_main_function = Function::script(chunk.clone());
+        self.stack.push(ValueType::Function(Box::new(virtual_main_function)));
+        self.execute()?;
         self.stack.pop()?;
         Ok(())
     }
 
-    pub fn run_function(&mut self, script: Function) -> VmResult {
-        let call_frame = CallFrame::new(script.chunk().clone(), 0);
-        self.frames.push(call_frame);
-        self.stack.push(ValueType::Function(Box::new(script)));
-        self.run()?;
-        self.stack.pop()?;
-        Ok(())
-    }
-
-    fn run(&mut self) -> VmResult {
+    fn execute(&mut self) -> VmResult {
         while let Some(op) = self.advance() {
             let op = op.clone();
             self.trace_before();

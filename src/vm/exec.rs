@@ -16,6 +16,35 @@ use super::opcode::Op;
 ///
 /// The Chunk is generally immutable.
 /// The compiler uses [ChunkBuilder](crate::compiler::chunk::ChunkBuilder) to gradually build executable chunks.
+///
+/// # Examples
+///
+/// ## Run a chunk in a virtual machine.
+///
+/// ```rust
+/// # use std::error::Error;
+/// # use std::rc::Rc;
+/// # use brainterpreter::value::ValueType;
+/// # use brainterpreter::vm::exec::Chunk;
+/// # use brainterpreter::vm::opcode::Op;
+/// # use brainterpreter::vm::Vm;
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// let answer_chunk = Chunk::new(
+///     [
+///         Op::Const(0),
+///         Op::Const(1),
+///         Op::Mul,
+///         Op::Print,
+///     ],
+///     [
+///         ValueType::Number(6.0),
+///         ValueType::Number(7.0),
+///     ]);
+/// let mut vm = Vm::default();
+/// vm.load_and_run(Rc::new(answer_chunk))?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Default)]
 pub struct Chunk {
     constants: Vec<ValueType>,
