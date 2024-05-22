@@ -32,9 +32,9 @@ pub fn interpret(source: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut parser = Parser::new(lexer);
         let ast = parser.parse_program()?;
         let mut compiler = Compiler::default();
-        let script = compiler.compile_script(ast)?;
+        let script = compiler.compile(ast)?;
         let mut vm = Vm::with_io(io.clone());
-        vm.run_script(script)?;
+        vm.load_and_run(Rc::new(script))?;
     }
 
     let output = io.borrow();

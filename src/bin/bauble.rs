@@ -74,8 +74,8 @@ fn disassemble_file(args: &Args) -> Result<(), Box<dyn Error>> {
     let mut parser = BaubleParser::new(lexer);
     let ast = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let script = compiler.compile_script(ast)?;
-    disassemble(script.chunk(), stdout())?;
+    let chunk = compiler.compile(ast)?;
+    disassemble(&chunk, stdout())?;
     Ok(())
 }
 

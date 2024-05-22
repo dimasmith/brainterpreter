@@ -1,6 +1,6 @@
 //! Compiles AST into virtual machine instructions
-use std::rc::Rc;
 use log::trace;
+use std::rc::Rc;
 use thiserror::Error;
 
 use locals::Locals;
@@ -34,23 +34,11 @@ pub enum CompileError {
 }
 
 impl Compiler {
-    pub fn compile_script(&mut self, program: Program) -> Result<Function, CompileError> {
-        let mut script_compiler = Compiler::default();
-        let chunk = Rc::new(script_compiler.compile_program(program)?);
-
-        let script = Function::script(Rc::clone(&chunk));
-        self.chunk
-            .add_constant(ValueType::Function(Box::new(script.clone())));
-        self.chunk.add_op(Op::Call(0));
-        Ok(script)
-    }
-
-    pub fn compile_program(&mut self, program: Program) -> Result<Chunk, CompileError> {
-        for statement in program.statements() {
-            self.statement(statement)?;
-        }
-        // TODO: fix this ugly clone
-        Ok(self.chunk.clone().build())
+    pub fn compile(&mut self, program: Program) -> Result<Chunk, CompileError> {
+        // TODO: this delegation approach is weird. Get rid of it.
+        let script_compiler = Compiler::default();
+        let chunk_builder = script_compiler.compile_part(program)?;
+        Ok(chunk_builder.build())
     }
 
     fn compile_part(mut self, program: Program) -> Result<ChunkBuilder, CompileError> {
@@ -386,8 +374,7 @@ mod tests {
         let program = Program::new(vec![assign]);
         let mut compiler = Compiler::default();
 
-        let script = compiler.compile_script(program).unwrap();
-        let chunk = script.chunk();
+        let chunk = compiler.compile(program).unwrap();
         let ops: Vec<&Op> = chunk.ops().collect();
 
         assert_eq!(
@@ -402,7 +389,7 @@ mod tests {
         let mut compiler = Compiler::default();
 
         let chunk = compiler
-            .compile_program(Program::new(vec![number]))
+            .compile(Program::new(vec![number]))
             .unwrap();
 
         assert_eq!(chunk.op(0), Some(&Op::ConstFloat(42.0)));
@@ -419,7 +406,7 @@ mod tests {
         let mut compiler = Compiler::default();
 
         let chunk: Chunk = compiler
-            .compile_program(Program::new(vec![add_statement]))
+            .compile(Program::new(vec![add_statement]))
             .unwrap();
 
         assert_eq!(chunk.op(0), Some(&Op::ConstFloat(8.5)));
@@ -436,7 +423,7 @@ mod tests {
         let block = Statement::Block(block_assignments);
         let mut compiler = Compiler::default();
 
-        let program = compiler.compile_program(Program::new(vec![block])).unwrap();
+        let program = compiler.compile(Program::new(vec![block])).unwrap();
 
         let opcodes: Vec<Op> = program.ops().cloned().collect();
         assert_eq!(
@@ -461,7 +448,7 @@ mod tests {
         let mut compiler = Compiler::default();
 
         let chunk = compiler
-            .compile_program(Program::new(vec![global, block]))
+            .compile(Program::new(vec![global, block]))
             .unwrap();
         let opcodes: Vec<Op> = chunk.ops().cloned().collect();
 

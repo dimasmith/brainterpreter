@@ -15,9 +15,9 @@ fn interpret(source: &str) -> Result<(), Box<dyn Error>> {
     let mut parser = Parser::new(lexer);
     let ast = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let script = compiler.compile_script(ast)?;
+    let script = compiler.compile(ast)?;
     let mut vm = Vm::with_io(Rc::new(RefCell::new(vec![])));
-    vm.run_script(script)?;
+    vm.load_and_run(Rc::new(script))?;
 
     Ok(())
 }
@@ -38,13 +38,13 @@ fn parse_benchmark(c: &mut Criterion) {
     let ast = parser.parse_program().unwrap();
     let mut compiler = Compiler::default();
     c.bench_function("compile", |b| {
-        b.iter(|| compiler.compile_script(ast.clone()))
+        b.iter(|| compiler.compile(ast.clone()))
     });
 
     let ast = parser.parse_program().unwrap();
-    let script = compiler.compile_script(ast).unwrap();
+    let chunk = Rc::new(compiler.compile(ast).unwrap());
     let mut vm = Vm::with_io(Rc::new(RefCell::new(vec![])));
-    c.bench_function("run", |b| b.iter(|| vm.run_script(script.clone())));
+    c.bench_function("run", |b| b.iter(|| vm.load_and_run(chunk.clone())));
 }
 
 criterion_group!(benches, brainfuck_benchmark, parse_benchmark);

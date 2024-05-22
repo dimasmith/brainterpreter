@@ -68,7 +68,16 @@ pub struct VmStack {
 }
 
 impl Vm {
-    pub fn run_script(&mut self, script: Function) -> VmResult {
+    pub fn load_and_run(&mut self, chunk: Rc<Chunk>) -> VmResult {
+        let call_frame = CallFrame::new(chunk.clone(), 0);
+        self.frames.push(call_frame);
+        self.stack.push(ValueType::Function(Box::new(Function::script(chunk.clone()))));
+        self.run()?;
+        self.stack.pop()?;
+        Ok(())
+    }
+
+    pub fn run_function(&mut self, script: Function) -> VmResult {
         let call_frame = CallFrame::new(script.chunk().clone(), 0);
         self.frames.push(call_frame);
         self.stack.push(ValueType::Function(Box::new(script)));

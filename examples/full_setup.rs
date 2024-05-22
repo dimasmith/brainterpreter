@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::rc::Rc;
 
 use brainterpreter::compiler::Compiler;
 use brainterpreter::lexer::Lexer;
@@ -12,9 +13,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program()?;
     let mut compiler = Compiler::default();
-    let chunk = compiler.compile_script(program)?;
+    let chunk = compiler.compile(program)?;
     let mut vm = Vm::default();
-    vm.run_script(chunk)?;
+    vm.load_and_run(Rc::new(chunk))?;
 
     Ok(())
 }
