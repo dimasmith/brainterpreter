@@ -1,3 +1,5 @@
+//! Helps to build executable chunks.
+
 use log::trace;
 
 use crate::{
@@ -65,7 +67,7 @@ impl ChunkBuilder {
         self.patch_jump_to(jump_address, self.last_op_address());
     }
 
-    /// Produces a chunk from the builder.
+    /// Produces a [Chunk] from the builder.
     pub fn build(self) -> Chunk {
         Chunk::new(self.ops, self.constants)
     }

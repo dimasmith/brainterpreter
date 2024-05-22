@@ -11,7 +11,7 @@ use crate::vm::opcode::Op;
 
 use self::chunk::ChunkBuilder;
 
-mod chunk;
+pub mod chunk;
 mod locals;
 
 type CompilationResult = Result<(), CompileError>;
@@ -385,7 +385,7 @@ mod tests {
         let mut compiler = Compiler::default();
 
         let script = compiler.compile_script(program).unwrap();
-        let ops: Vec<&Op> = script.chunk().iter().collect();
+        let ops: Vec<&Op> = script.chunk().ops().collect();
 
         assert_eq!(
             ops,
@@ -435,7 +435,7 @@ mod tests {
 
         let program = compiler.compile_program(Program::new(vec![block])).unwrap();
 
-        let opcodes: Vec<Op> = program.iter().cloned().collect();
+        let opcodes: Vec<Op> = program.ops().cloned().collect();
         assert_eq!(
             opcodes,
             vec![
@@ -460,7 +460,7 @@ mod tests {
         let chunk = compiler
             .compile_program(Program::new(vec![global, block]))
             .unwrap();
-        let opcodes: Vec<Op> = chunk.iter().cloned().collect();
+        let opcodes: Vec<Op> = chunk.ops().cloned().collect();
 
         assert_eq!(
             opcodes,

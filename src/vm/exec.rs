@@ -1,15 +1,21 @@
 //! Defines in-memory format of the executable VM can run.
+//!
+//! The Chunk is an executable which can be run via the virtual machine.
 
 use std::fmt::Display;
 
 use crate::value::ValueType;
 
 use super::opcode::Op;
+
 /// In-memory representation of the executable VM can run.
 ///
 /// The executable chunk holds two main areas:
 /// - Instructions - a list of VM operations.
 /// - Constant pool - a list of constants necessary for program execution.
+///
+/// The Chunk is generally immutable.
+/// The compiler uses [ChunkBuilder](crate::compiler::chunk::ChunkBuilder) to gradually build executable chunks.
 #[derive(Debug, Clone, Default)]
 pub struct Chunk {
     constants: Vec<ValueType>,
@@ -29,32 +35,39 @@ impl Chunk {
         }
     }
 
+    /// Returns operation on address.
     pub fn op(&self, idx: usize) -> Option<&Op> {
         self.ops.get(idx)
     }
 
+    /// Count of opcodes in executable chunk.
+    pub fn ops_len(&self) -> usize {
+        self.ops.len()
+    }
+
+    /// Returns iterator of opcode references.
+    pub fn ops(&self) -> impl ExactSizeIterator<Item = &Op> {
+        self.ops.iter()
+    }
+
+    /// Get constant from a constants pool by index.
     pub fn constant(&self, idx: usize) -> Option<&ValueType> {
         self.constants.get(idx)
     }
 
-    pub fn constants(&self) -> &Vec<ValueType> {
-        &self.constants
+    /// Return iterator over constants in constants pool.
+    pub fn constants(&self) -> impl ExactSizeIterator<Item = &ValueType> {
+        self.constants.iter()
     }
 
-    pub fn len(&self) -> usize {
-        self.ops.len()
+    /// Count of constants in executable chunk.
+    pub fn constants_len(&self) -> usize {
+        self.constants.len()
     }
 
+    /// Returns true if the chunk has no opcodes.
     pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<Op> {
-        self.ops.iter()
-    }
-
-    pub fn last_index(&self) -> usize {
-        self.ops.len() - 1
     }
 }
 

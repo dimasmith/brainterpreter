@@ -16,14 +16,14 @@ fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result
     let mut functions = vec![];
     writeln!(w, "fn:{}:", name)?;
     writeln!(w, "constants:")?;
-    for (pos, val) in chunk.constants().iter().enumerate() {
+    for (pos, val) in chunk.constants().enumerate() {
         writeln!(w, "\t{:04x}\t{}", pos, val)?;
         if let ValueType::Function(function) = val {
             functions.push(function);
         }
     }
     writeln!(w, "code:")?;
-    for (line, op) in chunk.iter().enumerate() {
+    for (line, op) in chunk.ops().enumerate() {
         match op {
             Op::Jump(offset) | Op::JumpIfFalse(offset) => {
                 let address = line.checked_add_signed(*offset as isize).unwrap();
