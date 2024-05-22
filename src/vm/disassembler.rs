@@ -38,7 +38,7 @@ fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result
     }
     writeln!(w)?;
     for function in functions.iter() {
-        disassemble_function(function.chunk(), function.name(), w)?;
+        disassemble_function(&function.chunk(), function.name(), w)?;
     }
     Ok(())
 }
@@ -49,6 +49,7 @@ mod tests {
     use crate::value::{Function, ValueType};
     use crate::vm::opcode::Op;
     use std::io::BufWriter;
+    use std::rc::Rc;
 
     fn test_disassemble(chunk: &Chunk) -> String {
         let mut w = BufWriter::new(vec![]);
@@ -117,7 +118,7 @@ mod tests {
         );
         let function = ValueType::Function(Box::new(Function::new(
             "greet".to_string(),
-            function_chunk,
+            Rc::new(function_chunk),
             0,
         )));
 

@@ -1,4 +1,5 @@
 //! Compiles AST into virtual machine instructions
+use std::rc::Rc;
 use log::trace;
 use thiserror::Error;
 
@@ -35,8 +36,9 @@ pub enum CompileError {
 impl Compiler {
     pub fn compile_script(&mut self, program: Program) -> Result<Function, CompileError> {
         let mut script_compiler = Compiler::default();
-        let chunk = script_compiler.compile_program(program)?;
-        let script = Function::script(chunk);
+        let chunk = Rc::new(script_compiler.compile_program(program)?);
+
+        let script = Function::script(Rc::clone(&chunk));
         self.chunk
             .add_constant(ValueType::Function(Box::new(script.clone())));
         self.chunk.add_op(Op::Call(0));
@@ -334,8 +336,8 @@ impl Compiler {
         let mut chunk_builder = function_compiler.compile_part(function_program)?;
         chunk_builder.add_op(Op::Nil);
         chunk_builder.add_op(Op::Return);
-        let chunk = chunk_builder.build();
-        let function = Function::new(name.to_string(), chunk, params.len());
+        let chunk = Rc::new(chunk_builder.build());
+        let function = Function::new(name.to_string(), Rc::clone(&chunk), params.len());
         let n = self
             .chunk
             .add_constant(ValueType::Function(Box::new(function)));
@@ -385,7 +387,8 @@ mod tests {
         let mut compiler = Compiler::default();
 
         let script = compiler.compile_script(program).unwrap();
-        let ops: Vec<&Op> = script.chunk().ops().collect();
+        let chunk = script.chunk();
+        let ops: Vec<&Op> = chunk.ops().collect();
 
         assert_eq!(
             ops,

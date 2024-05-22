@@ -16,7 +16,7 @@ use super::opcode::Op;
 ///
 /// The Chunk is generally immutable.
 /// The compiler uses [ChunkBuilder](crate::compiler::chunk::ChunkBuilder) to gradually build executable chunks.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Chunk {
     constants: Vec<ValueType>,
     ops: Vec<Op>,

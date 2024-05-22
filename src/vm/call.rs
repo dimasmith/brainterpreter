@@ -1,16 +1,17 @@
 use std::num::IntErrorKind;
+use std::rc::Rc;
 
 use super::{exec::Chunk, opcode::Op};
 
 #[derive(Debug)]
 pub struct CallFrame {
     ip: usize,
-    chunk: Chunk,
+    chunk: Rc<Chunk>,
     stack_top: usize,
 }
 
 impl CallFrame {
-    pub fn new(chunk: Chunk, stack_top: usize) -> Self {
+    pub fn new(chunk: Rc<Chunk>, stack_top: usize) -> Self {
         CallFrame {
             chunk,
             ip: 0,

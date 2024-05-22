@@ -39,7 +39,7 @@ pub enum TypeError {
 #[derive(Debug, Clone)]
 pub struct Function {
     name: String,
-    chunk: Chunk,
+    chunk: Rc<Chunk>,
     arity: usize,
 }
 
@@ -172,11 +172,11 @@ impl Display for ValueType {
 }
 
 impl Function {
-    pub fn new(name: String, chunk: Chunk, arity: usize) -> Self {
+    pub fn new(name: String, chunk: Rc<Chunk>, arity: usize) -> Self {
         Self { name, chunk, arity }
     }
 
-    pub fn script(chunk: Chunk) -> Self {
+    pub fn script(chunk: Rc<Chunk>) -> Self {
         Self {
             name: "$main$".to_string(),
             chunk,
@@ -188,8 +188,8 @@ impl Function {
         &self.name
     }
 
-    pub fn chunk(&self) -> &Chunk {
-        &self.chunk
+    pub fn chunk(&self) -> Rc<Chunk> {
+        self.chunk.clone()
     }
 
     pub fn arity(&self) -> usize {
@@ -334,7 +334,7 @@ mod tests {
 
         let s = ValueType::Function(Box::new(Function::new(
             "test".to_string(),
-            Chunk::default(),
+            Rc::new(Chunk::default()),
             0,
         )));
         assert_eq!(s.as_string(), "test");
@@ -368,7 +368,7 @@ mod tests {
 
         let s = ValueType::Function(Box::new(Function::new(
             "test".to_string(),
-            Chunk::default(),
+            Rc::new(Chunk::default()),
             0,
         )));
         assert_eq!(format!("{}", s), "fn:test");
