@@ -388,9 +388,7 @@ mod tests {
         let number = Statement::expression(Expression::number(42.0));
         let mut compiler = Compiler::default();
 
-        let chunk = compiler
-            .compile(Program::new(vec![number]))
-            .unwrap();
+        let chunk = compiler.compile(Program::new(vec![number])).unwrap();
 
         assert_eq!(chunk.op(0), Some(&Op::ConstFloat(42.0)));
     }
@@ -405,9 +403,7 @@ mod tests {
         let add_statement = Statement::expression(add_expression);
         let mut compiler = Compiler::default();
 
-        let chunk: Chunk = compiler
-            .compile(Program::new(vec![add_statement]))
-            .unwrap();
+        let chunk: Chunk = compiler.compile(Program::new(vec![add_statement])).unwrap();
 
         assert_eq!(chunk.op(0), Some(&Op::ConstFloat(8.5)));
         assert_eq!(chunk.op(1), Some(&Op::ConstFloat(3.0)));
@@ -447,9 +443,7 @@ mod tests {
         let block = Statement::Block(vec![local]);
         let mut compiler = Compiler::default();
 
-        let chunk = compiler
-            .compile(Program::new(vec![global, block]))
-            .unwrap();
+        let chunk = compiler.compile(Program::new(vec![global, block])).unwrap();
         let opcodes: Vec<Op> = chunk.ops().cloned().collect();
 
         assert_eq!(

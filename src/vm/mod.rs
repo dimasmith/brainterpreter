@@ -79,7 +79,8 @@ impl Vm {
         // allocation fails.
         // Having a virtual function prevents this issue.
         let virtual_main_function = Function::script(chunk.clone());
-        self.stack.push(ValueType::Function(Box::new(virtual_main_function)));
+        self.stack
+            .push(ValueType::Function(Box::new(virtual_main_function)));
         self.execute()?;
         self.stack.pop()?;
         Ok(())

@@ -37,9 +37,7 @@ fn parse_benchmark(c: &mut Criterion) {
 
     let ast = parser.parse_program().unwrap();
     let mut compiler = Compiler::default();
-    c.bench_function("compile", |b| {
-        b.iter(|| compiler.compile(ast.clone()))
-    });
+    c.bench_function("compile", |b| b.iter(|| compiler.compile(ast.clone())));
 
     let ast = parser.parse_program().unwrap();
     let chunk = Rc::new(compiler.compile(ast).unwrap());
