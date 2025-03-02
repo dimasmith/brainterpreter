@@ -40,6 +40,13 @@ impl VmStack {
     }
 }
 
+impl Default for VmStack {
+    fn default() -> Self {
+        let stack = Vec::with_capacity(STACK_SIZE);
+        VmStack { stack }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,12 +60,5 @@ mod tests {
         stack.set(1, ValueType::Number(4.0)).unwrap();
         assert_eq!(stack.stack[0], ValueType::Number(3.0));
         assert_eq!(stack.stack[1], ValueType::Number(4.0));
-    }
-}
-
-impl Default for VmStack {
-    fn default() -> Self {
-        let stack = Vec::with_capacity(STACK_SIZE);
-        VmStack { stack }
     }
 }
