@@ -138,7 +138,7 @@ impl Vm {
         let result = match (operation, &value_a, &value_b) {
             (Op::Add, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a + b),
             (Op::Add, ValueType::Text(a), ValueType::Text(b)) => {
-                let concat = format!("{}{}", a, b);
+                let concat = format!("{a}{b}");
                 ValueType::Text(Box::new(concat))
             }
             (Op::Sub, ValueType::Number(a), ValueType::Number(b)) => ValueType::Number(a - b),
@@ -211,7 +211,7 @@ impl Vm {
         };
         self.out
             .borrow_mut()
-            .write_fmt(format_args!("{}\n", line))
+            .write_fmt(format_args!("{line}\n"))
             .map_err(VmRuntimeError::IoError)
     }
 

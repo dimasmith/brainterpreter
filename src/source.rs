@@ -43,6 +43,6 @@ mod tests {
         let pos = Position::new(1, 2);
         assert_eq!(pos.line(), 1);
         assert_eq!(pos.column(), 2);
-        assert_eq!(format!("{}", pos), "[1:2]");
+        assert_eq!(format!("{pos}"), "[1:2]");
     }
 }

@@ -11,7 +11,7 @@ fn main() {
     match interpret(&src) {
         Ok(_) => {}
         Err(e) => {
-            error!("{}", e);
+            error!("{e}");
         }
     }
 }

@@ -22,10 +22,10 @@ impl VmStepTrace for LoggingTracer {
 
 impl LoggingTracer {
     fn print_stack(&self, stack: &VmStack, stage: &str) {
-        debug!("= stack {}", stage);
+        debug!("= stack {stage}");
         for i in 0..stack.len() {
             let value = stack.get(i).unwrap();
-            debug!("{}:\t{}", i, value);
+            debug!("{i}:\t{value}");
         }
 
         debug!("{}", "-".repeat(16));
@@ -43,9 +43,9 @@ impl LoggingTracer {
         for i in start_index..end_index {
             let op = chunk.op(i).unwrap();
             if i == ip {
-                debug!("{}:>\t{}", i, op);
+                debug!("{i}:>\t{op}");
             } else {
-                debug!("{}:\t{}", i, op);
+                debug!("{i}:\t{op}");
             }
         }
         debug!("{}", "-".repeat(16));

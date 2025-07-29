@@ -14,10 +14,10 @@ pub fn disassemble(chunk: &Chunk, mut w: impl Write) -> Result<(), Error> {
 
 fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result<(), Error> {
     let mut functions = vec![];
-    writeln!(w, "fn:{}:", name)?;
+    writeln!(w, "fn:{name}:")?;
     writeln!(w, "constants:")?;
     for (pos, val) in chunk.constants().enumerate() {
-        writeln!(w, "\t{:04x}\t{}", pos, val)?;
+        writeln!(w, "\t{pos:04x}\t{val}")?;
         if let ValueType::Function(function) = val {
             functions.push(function);
         }
@@ -27,13 +27,13 @@ fn disassemble_function(chunk: &Chunk, name: &str, w: &mut impl Write) -> Result
         match op {
             Op::Jump(offset) | Op::JumpIfFalse(offset) => {
                 let address = line.checked_add_signed(*offset as isize).unwrap();
-                writeln!(w, "\t{:04x}\t{} # {:04x}", line, op, address)?;
+                writeln!(w, "\t{line:04x}\t{op} # {address:04x}")?;
             }
             Op::StoreGlobal(idx) | Op::LoadGlobal(idx) => {
                 let var_name = chunk.constant(*idx).unwrap().as_string();
-                writeln!(w, "\t{:04x}\t{} # {}", line, op, var_name)?;
+                writeln!(w, "\t{line:04x}\t{op} # {var_name}")?;
             }
-            o => writeln!(w, "\t{:04x}\t{}", line, o)?,
+            o => writeln!(w, "\t{line:04x}\t{o}")?,
         }
     }
     writeln!(w)?;

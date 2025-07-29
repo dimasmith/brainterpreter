@@ -32,7 +32,7 @@ where
     fn variable_definition(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing variable declaration");
         let token = self.advance();
-        trace!("Variable declaration token: {:?}", token);
+        trace!("Variable declaration token: {token:?}");
         let name = match token {
             Token::Identifier(name) => name,
             _ => {
@@ -57,7 +57,7 @@ where
     fn function_definition(&mut self) -> Result<Statement, ParsingError> {
         trace!("Parsing function declaration");
         let token = self.advance();
-        trace!("Function declaration token: {:?}", token);
+        trace!("Function declaration token: {token:?}");
         let name = match token {
             Token::Identifier(name) => name,
             _ => {

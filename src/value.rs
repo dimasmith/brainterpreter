@@ -159,10 +159,10 @@ impl Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ValueType::Nil => write!(f, "nil"),
-            ValueType::Bool(b) => write!(f, "b:{}", b),
-            ValueType::Number(n) => write!(f, "f:{}", n),
-            ValueType::Address(a) => write!(f, "*:{}", a),
-            ValueType::Text(s) => write!(f, "s:{}", s),
+            ValueType::Bool(b) => write!(f, "b:{b}"),
+            ValueType::Number(n) => write!(f, "f:{n}"),
+            ValueType::Address(a) => write!(f, "*:{a}"),
+            ValueType::Text(s) => write!(f, "s:{s}"),
             ValueType::Function(func) => write!(f, "fn:{}", func.name),
             ValueType::NativeFunction(func) => write!(f, "<native>fn:{}", func.name),
             ValueType::Array(_) => write!(f, "[]"),
@@ -352,34 +352,34 @@ mod tests {
     #[test]
     fn display() {
         let s = ValueType::Text(Box::new("hello".to_string()));
-        assert_eq!(format!("{}", s), "s:hello");
+        assert_eq!(format!("{s}"), "s:hello");
 
         let s = ValueType::Number(10.0);
-        assert_eq!(format!("{}", s), "f:10");
+        assert_eq!(format!("{s}"), "f:10");
 
         let s = ValueType::Bool(true);
-        assert_eq!(format!("{}", s), "b:true");
+        assert_eq!(format!("{s}"), "b:true");
 
         let s = ValueType::Nil;
-        assert_eq!(format!("{}", s), "nil");
+        assert_eq!(format!("{s}"), "nil");
 
         let s = ValueType::Address(10);
-        assert_eq!(format!("{}", s), "*:10");
+        assert_eq!(format!("{s}"), "*:10");
 
         let s = ValueType::Function(Box::new(Function::new(
             "test".to_string(),
             Rc::new(Chunk::default()),
             0,
         )));
-        assert_eq!(format!("{}", s), "fn:test");
+        assert_eq!(format!("{s}"), "fn:test");
 
         let s = ValueType::NativeFunction(Rc::new(NativeFunction::new("test", 0, |_vm| Ok(()))));
-        assert_eq!(format!("{}", s), "<native>fn:test");
+        assert_eq!(format!("{s}"), "<native>fn:test");
 
         let s = ValueType::Array(Box::new(vec![ValueType::Number(10.0)]));
-        assert_eq!(format!("{}", s), "[]");
+        assert_eq!(format!("{s}"), "[]");
 
         let s = ValueType::ArrayRef(Rc::new(RefCell::new(vec![ValueType::Number(10.0)])));
-        assert_eq!(format!("{}", s), "&[]");
+        assert_eq!(format!("{s}"), "&[]");
     }
 }

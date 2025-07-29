@@ -103,7 +103,7 @@ impl Chunk {
 impl Display for Chunk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for op in self.ops.iter() {
-            writeln!(f, "{}", op)?
+            writeln!(f, "{op}")?
         }
         Ok(())
     }

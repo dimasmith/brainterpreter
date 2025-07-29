@@ -108,7 +108,7 @@ impl<'a> Lexer<'a> {
             'a'..='z' | 'A'..='Z' | '_' => Some(self.identifier()),
             '"' => Some(self.string_literal()),
             _ => {
-                error!("unknown token: {}", c);
+                error!("unknown token: {c}");
                 Some(Token::Error.with_position(self.src_pos()))
             }
         }

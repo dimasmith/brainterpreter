@@ -12,7 +12,7 @@ fn main() {
     match interpret(source) {
         Ok(_) => {}
         Err(e) => {
-            error!("{}", e);
+            error!("{e}");
         }
     }
 }

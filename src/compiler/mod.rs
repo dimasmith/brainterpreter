@@ -49,7 +49,7 @@ impl Compiler {
     }
 
     fn statement(&mut self, ast: &Statement) -> CompilationResult {
-        trace!("Compiling statement: {:?}", ast);
+        trace!("Compiling statement: {ast:?}");
         match ast {
             Statement::Expression(expr) => self.expression_statement(expr),
             Statement::Print(expr) => self.print_statement(expr),

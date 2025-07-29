@@ -37,7 +37,7 @@ impl ChunkBuilder {
             .enumerate()
             .find(|(_, v)| *v == &value)
         {
-            trace!("found constant {:?} on index {}", v, i);
+            trace!("found constant {v:?} on index {i}");
             i
         } else {
             self.constants.push(value);

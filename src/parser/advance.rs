@@ -28,9 +28,9 @@ where
     }
 
     pub fn consume(&mut self, expected: &Token) -> Result<(), ParsingError> {
-        trace!("Consuming token: {:?}", expected);
+        trace!("Consuming token: {expected:?}");
         let token = self.advance();
-        trace!("Consuming token: current {:?}", token);
+        trace!("Consuming token: current {token:?}");
         if &token == expected {
             return Ok(());
         }

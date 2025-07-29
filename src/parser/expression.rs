@@ -16,9 +16,9 @@ where
     }
 
     fn expression_bp(&mut self, min_binding: u8) -> ParsingResult {
-        trace!("Parsing expression (min_binding: {})", min_binding);
+        trace!("Parsing expression (min_binding: {min_binding})");
         let token = self.advance();
-        trace!("Parsing expression (token: {:?})", token);
+        trace!("Parsing expression (token: {token:?})");
         let mut lhs = match token {
             Token::Number(n) => Expression::number(n),
             Token::Nil => Expression::Nil,
@@ -144,7 +144,7 @@ where
     }
 
     fn function_call(&mut self, name: &str) -> ParsingResult {
-        trace!("Parsing function call expression (name: {})", name);
+        trace!("Parsing function call expression (name: {name})");
         let mut arguments = vec![];
         if let Token::RightParen = self.peek() {
             self.consume(&Token::RightParen)?;
